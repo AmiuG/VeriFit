@@ -38,6 +38,7 @@ def multiplyMatrixVector(A, v):
 def solveSystem(A, B):
     #solves the system of equations A(nxn) * solution = B(nx1)
     #A must be square matrix
+    # A and B must be 2D list
     #returns 2D list matrix or None if no solution
 
     #Step 1. build augmented matrix
@@ -80,6 +81,7 @@ def solveSystem(A, B):
 
 #solves the normal equation for least squares regression
 def leastSquares(A, y):
+    #convert y matrix into 2D list if it's not
     if len(y) > 0 and not isinstance(y[0], list):
         y = [[val] for val in y]
     #(A^T*A) * solution = A^T * y
