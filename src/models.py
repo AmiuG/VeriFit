@@ -333,6 +333,40 @@ class LogarithmicModel(Model):
         return f'y = {aStr} + {bStr} * ln(x)'
 
 
+class FlatlineModel(Model):
+    def __init__(self):
+        super().__init__()
+        self.name = 'Flatline'
+        self.paramCount = 2
+        self.c = None
+
+    # def canFit(self, x_coords, y_coords):
+    #     works, message = super().canFit(x_coords, y_coords)
+    #     if not works:
+    #         return (False, message)
+    #     return (True,'')
+
+    def fit(self, xs, ys):
+        works, message = self.canFit(xs, ys)
+        if not works:
+            return False
+        # For a flatline y = c, the best c is the mean (average) of all y values
+        self.c = sum(ys) / len(ys)
+        self.params = [self.c]
+        self.isFitted = True
+        return True
+
+    def predict(self, x):
+        if not self.isFitted:
+            return None
+        # Always returns the constant value regardless of x
+        return self.c
+
+    def getEquation(self):
+        if not self.isFitted:
+            return ''
+        return f'y = {formatNumber(self.c)}'
+
 def makeAllModels():
     # Returns one fresh, unfitted object of every model type.
     return [LinearModel(), QuadraticModel(), CubicModel(),
