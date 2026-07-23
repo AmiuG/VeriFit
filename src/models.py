@@ -141,6 +141,7 @@ class PolynomialModel(Model):
 
         return f'{leftHandSide} = {rightHandSide}'
 
+# subclasses of PolynomialModel (linear, quadratic, cubic and custom)
 class LinearModel(PolynomialModel):
     def __init__(self):
         super().__init__(1, 'Linear')
@@ -159,6 +160,7 @@ class CustomPolynomialModel(PolynomialModel):
         self.setPowers(powers)
         self.name = self.makeName()
 
+    #make the custom name
     def makeName(self):
         terms = []
         for i in range(len(self.powers)-1, -1, -1):
@@ -170,6 +172,66 @@ class CustomPolynomialModel(PolynomialModel):
                 terms.append(f'x^{self.powers[i]}')
         equation = '+'.join(terms)
         return f'Custom({equation})'
+
+
+class ExponentialModel(Model):
+    def __init__(self):
+        super().__init__()
+        self.name = 'Exponential'
+        self.paramCount = 2
+        self.a, self.b = None, None #constants for fit model
+
+    def canFit(self, x_coords, y_coords):
+        works, message = super().canFit(x_coords, y_coords)
+        if not works:
+            return (False, message)
+        allPositive = all(y > 0 for y in y_coords) # checks if y-values are strictly positive
+        allNegative = all(y < 0 for y in y_coords) # checks if y-values are strictly negative
+        if not (allPositive or allNegative):
+            return (False, 'All y-values must be all positive or all negative')
+        return (True, '')
+
+    def fit(self, x_coords, y_coords):
+        works, message = self.canFit(x_coords, y_coords)
+        if not works:
+            return False
+        isNegative = y_coords[0] < 0 # checks if the model is fitting negative y-values
+        # use leastSquare to solve ln(|y|) = ln(|a|) + b*x
+        ln_ys = [math.log(abs(y)) for y in y_coords] # convert y-values into ln(|y|)
+        A = [[1,x] for x in x_coords] # build design matrix
+        solution = linalg.leastSquares(A, ln_ys) # compute ln(|a|) and b
+        if solution is None:
+            return False
+        # extract ln(|a|) and b values from solution
+        ln_a = solution[0][0] if isinstance(solution[0], list) else solution[0]
+        b_val = solution[1][0] if isinstance(solution[1], list) else solution[1]
+        # assign self.a and self.b with right sign
+        abs_a = math.exp(ln_a)
+        self.a = -abs_a if isNegative else abs_a
+        self.b = b_val
+        # add self.a and self.b to parameters
+        self.params = [self.a, self.b]
+        self.isFitted = True
+        return True
+
+    def predict(self, x):
+        if not self.isFitted:
+            return None
+        return self.a * math.exp(self.b * x)
+
+    def getEquation(self):
+        if not self.isFitted:
+            return ''
+        aStr, bStr = formatNumber(self.a), formatNumber(self.b)
+        if self.b == 0:
+            return f'y = {aStr}'
+        elif almostOne(abs(self.b)):
+            sign = '-' if self.b < 0 else ''
+            return f'y = {aStr} * e^({sign}x)'
+        else:
+            return f'y = {aStr} * e^({bStr}x)'
+
+
 
 def makeAllModels():
     # Returns one fresh, unfitted object of every model type.
