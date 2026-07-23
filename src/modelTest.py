@@ -66,8 +66,22 @@ def testExponentialModel():
     assert almostEqual(model.b, 0.3)
     print('Passed.', model.getEquation())
 
+def testPowerModel():
+    print('Testing PowerModel...', end = ' ')
+    # y = 2 * x^1.5
+    xs = [1, 2, 3, 4, 8]
+    ys = []
+    for x in xs:
+        ys.append(2 * x ** 0.01)
+    model = PowerModel()
+    assert model.fit(xs, ys) == True
+    assert almostEqual(model.a, 2)
+    assert almostEqual(model.b, 0.01)
+    print('Passed.', model.getEquation())
+
 testLinearModel()
 testQuadraticModel()
 testCubicModel()
 testCustomPolynomialModel()
 testExponentialModel()
+testPowerModel()
