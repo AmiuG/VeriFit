@@ -52,7 +52,22 @@ def testCustomPolynomialModel():
     assert model.fit(xs, ys) == True
     print('Passed.', model.getEquation())
 
+
+def testExponentialModel():
+    print('Testing ExponentialModel...', end = ' ')
+    # y = 5 * e^(0.3x)
+    xs = [0, 1, 2, 3, 4, 5]
+    ys = []
+    for x in xs:
+        ys.append((-1)*5 * math.exp(0.3 * x))
+    model = ExponentialModel()
+    assert model.fit(xs, ys) == True
+    assert almostEqual(model.a, -5)
+    assert almostEqual(model.b, 0.3)
+    print('Passed.', model.getEquation())
+
 testLinearModel()
 testQuadraticModel()
 testCubicModel()
 testCustomPolynomialModel()
+testExponentialModel()
