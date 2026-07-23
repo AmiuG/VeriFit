@@ -50,10 +50,10 @@ class PolynomialModel(Model):
         self.degree = degree
         self.name = name
         startingPower = list(range(degree+1))
-        self.setPower(startingPower)
+        self.setPowers(startingPower)
 
     # allow polynomials to use only selected terms
-    def setPower(self, powers):
+    def setPowers(self, powers):
         # ignore repeated powers and sort them
         cleanedPowers = list(set(powers))
         cleanedPowers.sort()
@@ -153,6 +153,23 @@ class CubicModel(PolynomialModel):
     def __init__(self):
         super().__init__(3, 'Cubic')
 
+class CustomPolynomialModel(PolynomialModel):
+    def __init__(self, powers):
+        super().__init__(0, 'Custom')
+        self.setPowers(powers)
+        self.name = self.makeName()
+
+    def makeName(self):
+        terms = []
+        for i in range(len(self.powers)-1, -1, -1):
+            if self.powers[i] == 0:
+                terms.append('1')
+            elif self.powers[i] == 1:
+                terms.append('x')
+            else:
+                terms.append(f'x^{self.powers[i]}')
+        equation = '+'.join(terms)
+        return f'Custom({equation})'
 
 def makeAllModels():
     # Returns one fresh, unfitted object of every model type.
