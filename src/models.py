@@ -185,9 +185,9 @@ class ExponentialModel(Model):
         works, message = super().canFit(x_coords, y_coords)
         if not works:
             return (False, message)
-        allPositive = all(y > 0 for y in y_coords) # checks if y-values are strictly positive
-        allNegative = all(y < 0 for y in y_coords) # checks if y-values are strictly negative
-        if not (allPositive or allNegative):
+        allPositiveY = all(y > 0 for y in y_coords) # checks if y-values are strictly positive
+        allNegativeY = all(y < 0 for y in y_coords) # checks if y-values are strictly negative
+        if not (allPositiveY or allNegativeY):
             return (False, 'All y-values must be all positive or all negative')
         return (True, '')
 
@@ -232,6 +232,61 @@ class ExponentialModel(Model):
             return f'y = {aStr} * e^({bStr}x)'
 
 
+class PowerModel(Model):
+    def __init__(self):
+        super().__init__()
+        self.name = 'Power'
+        self.paramCount = 2
+        self.a, self.b = None, None
+
+    def canFit(self, x_coords, y_coords):
+        works, message = super().canFit(x_coords, y_coords)
+        if not works:
+            return (False, message)
+        allPositiveX = all(x > 0 for x in x_coords) # checks if x-values are strictly positive
+        allPositiveY = all(y > 0 for y in y_coords) # checks if y-values are strictly positive
+        if not allPositiveX:
+            return (False, 'All x-values must be positive')
+        if not allPositiveY:
+            return (False, 'All y-values must be positive')
+        return (True, '')
+
+    def fit(self, x_coords, y_coords):
+        works, message = self.canFit(x_coords, y_coords)
+        if not works:
+            return None
+        ln_xs = [math.log(abs(x)) for x in x_coords]
+        ln_ys = [math.log(abs(y)) for y in y_coords]
+        A = [[1,ln_x] for ln_x in ln_xs] # build design matrix
+        solution = linalg.leastSquares(A, ln_ys)
+        if solution is None:
+            return False
+        # extract ln(|a|) and b values from solution
+        ln_a = solution[0][0] if isinstance(solution[0], list) else solution[0]
+        b_val = solution[1][0] if isinstance(solution[1], list) else solution[1]
+        # assign self.a and self.b
+        self.a = math.exp(ln_a)
+        self.b = b_val
+        # add self.a and self.b to parameters
+        self.params = [self.a, self.b]
+        self.isFitted = True
+        return True
+
+    def predict(self, x):
+        if not self.isFitted:
+            return None
+        return self.a * (x**self.b)
+
+    def getEquation(self):
+        if not self.isFitted:
+                    return ''
+        aStr, bStr = formatNumber(self.a), formatNumber(self.b)
+        if self.b == 0:
+                    return f'y = 1'
+        elif almostOne(abs(self.b)):
+            return f'y = {aStr} * x'
+        else:
+            return f'y = {aStr} * x^({bStr})'
 
 def makeAllModels():
     # Returns one fresh, unfitted object of every model type.
