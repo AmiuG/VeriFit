@@ -79,9 +79,23 @@ def testPowerModel():
     assert almostEqual(model.b, 0.01)
     print('Passed.', model.getEquation())
 
+def testLogarithmicModel():
+    print('Testing LogarithmicModel...', end = ' ')
+    # y = 3 + 2*ln(x)
+    xs = [1, 2, 3, 5, 9]
+    ys = []
+    for x in xs:
+        ys.append(3 + 2 * math.log(x))
+    model = LogarithmicModel()
+    assert model.fit(xs, ys) == True
+    assert almostEqual(model.a, 3)
+    assert almostEqual(model.b, 2)
+    print('Passed.', model.getEquation())
+
 testLinearModel()
 testQuadraticModel()
 testCubicModel()
 testCustomPolynomialModel()
 testExponentialModel()
 testPowerModel()
+testLogarithmicModel()
