@@ -44,6 +44,15 @@ def testCubicModel():
     assert model.fit(xs, ys) == True
     print('Passed.', model.getEquation())
 
+def testCustomPolynomialModel():
+    print('Testing CustomPolynomialModel...', end = ' ')
+    xs = [-3, -2, -1, 0, 1, 2, 3]
+    ys = [3,1,3,5,1,3,4]
+    model = CustomPolynomialModel([2])
+    assert model.fit(xs, ys) == True
+    print('Passed.', model.getEquation())
+
 testLinearModel()
 testQuadraticModel()
 testCubicModel()
+testCustomPolynomialModel()
