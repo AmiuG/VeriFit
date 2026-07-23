@@ -92,6 +92,17 @@ def testLogarithmicModel():
     assert almostEqual(model.b, 2)
     print('Passed.', model.getEquation())
 
+def testFlatlineModel():
+    print('Testing FlatlineModel...', end = ' ')
+    # y = 5
+    xs = [1, 2, 3, 4, 5]
+    ys = [5, 5, 5, 5, 5]
+    model = FlatlineModel()
+    assert model.fit(xs, ys) == True
+    assert almostEqual(model.c, 5)
+    assert model.predict(10) == 5
+    print('Passed.', model.getEquation())
+
 testLinearModel()
 testQuadraticModel()
 testCubicModel()
@@ -99,3 +110,4 @@ testCustomPolynomialModel()
 testExponentialModel()
 testPowerModel()
 testLogarithmicModel()
+testFlatlineModel()
