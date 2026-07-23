@@ -288,10 +288,55 @@ class PowerModel(Model):
         else:
             return f'y = {aStr} * x^({bStr})'
 
+
+class LogarithmicModel(Model):
+    def __init__(self):
+        super().__init__()
+        self.name = 'Logarithmic'
+        self.paramCount = 2
+        self.a, self.b = None, None
+
+    def canFit(self, x_coords, y_coords):
+        works, message = super().canFit(x_coords, y_coords)
+        if not works:
+            return (False, message)
+        allPositiveX = all(x > 0 for x in x_coords) # checks if x-values are strictly positive
+        if not allPositiveX:
+            return (False, 'All x-values must be positive')
+        return (True, '')
+
+    def fit(self, x_coords, y_coords):
+        works, message = self.canFit(x_coords, y_coords)
+        if not works:
+            return True
+        A = [[1, math.log(x)] for x in x_coords] # build design matrix
+        solution = linalg.leastSquares(A, y_coords)
+        if solution == None:
+            return False
+        # a and b can simply be computed with leastSquares
+        self.a, self.b = solution[0], solution[1]
+        self.params = [self.a, self.b]
+        self.isFitted = True
+        return True
+
+    def predict(self, x):
+        if not self.isFitted or x <= 0:
+            return None
+        return self.a + self.b * math.log(x)
+
+    def getEquation(self):
+        if not self.isFitted:
+            return ''
+        aStr, bStr = formatNumber(self.a), formatNumber(self.b)
+        if self.b < 0:
+            return f'y = {aStr} - {bStr} * ln(x)'
+        return f'y = {aStr} + {bStr} * ln(x)'
+
+
 def makeAllModels():
     # Returns one fresh, unfitted object of every model type.
-    # Later steps will loop over this list to test every model at once.
-    return [LinearModel(), QuadraticModel(), CubicModel()]
+    return [LinearModel(), QuadraticModel(), CubicModel(),
+            ExponentialModel(), PowerModel(), LogarithmicModel()]
         
 
 
