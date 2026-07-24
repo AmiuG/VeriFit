@@ -1,4 +1,4 @@
-from cmu_graphics import *
+# from cmu_graphics import *
 
 
 
@@ -7,4 +7,4 @@ from cmu_graphics import *
 
 
 
-cmu_graphics.run() #initializes cmu graphics
+# cmu_graphics.run() #initializes cmu graphics
