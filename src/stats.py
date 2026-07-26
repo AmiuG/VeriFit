@@ -73,6 +73,59 @@ def rSquared(model, x_coords, y_coords):
         return None
     return 1 - sumOfSquares(residuals) / totalSquares
 
+
+def chooseFoldCount(n):
+    # for small data sets, each data points will be hidden and tested
+    # for large data sets, the model will use only 10 groups for efficiency
+    if n <= 25:
+        return n
+    return 10
+
+
 # k fold cross validated RMSE
 def crossValidatedRmse(model, x_coords, y_coords, foldCount = None):
-    
+    n = len(x_coords)
+    if foldCount is None:
+        foldCount = chooseFoldCount(n)
+    if foldCount < 2 or n < 2:
+        return None
+
+    heldOutErrors = [] # contain residuals from test points
+
+    for fold in range(foldCount):
+        trainXs, trainYs = [], [] # data used to fit the model
+        testXs, testYs = [], [] # data hidden from the model and used to evalute it
+        for i in range(n):
+            if i % foldCount == fold:
+                testXs.append(x_coords[i])
+                testYs.append(y_coords[i])
+            else:
+                trainXs.append(x_coords[i])
+                trainYs.append(y_coords[i])
+
+        # if len(testXs) == 0:
+        #     continue
+
+        practice = model.makeBlankCopy()
+        works, message = practice.canFit(trainXs, trainYs)
+        # checks if the fold meets the restrictions,
+        # such as minimum points and domain restrictions
+        if not works:
+            continue
+
+        # if not practice.fit(trainXs, trainYs):
+        #     continue
+         
+        for j in range(len(testXs)):
+            # safePredict will convert failure of prediction into None instead of crashing 
+            # the entire program
+            guess = safePredict(practice, testXs[j])
+            if guess == None:
+                continue
+            heldOutErrors.append(testYs[j] - guess)
+    #check if enough amount of rounds of the test were successful
+    if len(heldOutErrors) < n / 2 or len(heldOutErrors) < 2:
+            return None
+
+    return rmse(heldOutErrors)
+
