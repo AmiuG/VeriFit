@@ -29,6 +29,10 @@ class Model:
             return (False, f'Needs at least {self.paramCount} different points')
         return (True, '')
 
+    def makeBlankCopy(self):
+        return type(self)()
+
+
     # placeholders(subclasses will fill out these functions)
     def fit(self, x_coords, y_coords):
         return False
@@ -71,6 +75,11 @@ class PolynomialModel(Model):
     # checks if the model has constant term because it could affect results
     def hasConstantTerm(self):
         return 0 in self.powers
+
+    def makeBlankCopy(self):
+        fresh = PolynomialModel(self.degree, self.name)
+        fresh.setPowers(self.powers)
+        return fresh
 
     def canFit(self, x_coords, y_coords):
         works, message = super().canFit(x_coords, y_coords)
@@ -282,7 +291,7 @@ class PowerModel(Model):
                     return ''
         aStr, bStr = formatNumber(self.a), formatNumber(self.b)
         if self.b == 0:
-                    return f'y = 1'
+                    return f'y = {aStr}'
         elif almostOne(abs(self.b)):
             return f'y = {aStr} * x'
         else:
@@ -327,7 +336,7 @@ class LogarithmicModel(Model):
     def getEquation(self):
         if not self.isFitted:
             return ''
-        aStr, bStr = formatNumber(self.a), formatNumber(self.b)
+        aStr, bStr = formatNumber(self.a), formatNumber(abs(self.b))
         if self.b < 0:
             return f'y = {aStr} - {bStr} * ln(x)'
         return f'y = {aStr} + {bStr} * ln(x)'
@@ -340,11 +349,12 @@ class FlatlineModel(Model):
         self.paramCount = 2
         self.c = None
 
-    # def canFit(self, x_coords, y_coords):
-    #     works, message = super().canFit(x_coords, y_coords)
-    #     if not works:
-    #         return (False, message)
-    #     return (True,'')
+    # not necessary since parent class can handle it, but here for style purpose
+    def canFit(self, x_coords, y_coords):
+        works, message = super().canFit(x_coords, y_coords)
+        if not works:
+            return (False, message)
+        return (True,'')
 
     def fit(self, xs, ys):
         works, message = self.canFit(xs, ys)
@@ -359,18 +369,19 @@ class FlatlineModel(Model):
     def predict(self, x):
         if not self.isFitted:
             return None
-        # Always returns the constant value regardless of x
-        return self.c
+        return self.c # always returns the constant value regardless of x
 
     def getEquation(self):
         if not self.isFitted:
             return ''
         return f'y = {formatNumber(self.c)}'
 
+
+
 def makeAllModels():
     # Returns one fresh, unfitted object of every model type.
     return [LinearModel(), QuadraticModel(), CubicModel(),
-            ExponentialModel(), PowerModel(), LogarithmicModel()]
+            ExponentialModel(), PowerModel(), LogarithmicModel(), FlatlineModel()]
         
 
 
