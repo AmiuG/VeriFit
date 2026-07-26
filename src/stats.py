@@ -72,3 +72,7 @@ def rSquared(model, x_coords, y_coords):
     if totalSquares == 0:
         return None
     return 1 - sumOfSquares(residuals) / totalSquares
+
+# k fold cross validated RMSE
+def crossValidatedRmse(model, x_coords, y_coords, foldCount = None):
+    
