@@ -124,7 +124,8 @@ def crossValidatedRmse(model, x_coords, y_coords, foldCount = None):
                 continue
             heldOutErrors.append(testYs[j] - guess)
     #check if enough amount of rounds of the test were successful
-    if len(heldOutErrors) < n / 2 or len(heldOutErrors) < 2:
+    minErrors = max(2, math.ceil(n/2))
+    if len(heldOutErrors) < minErrors:
             return None
 
     return rmse(heldOutErrors)
@@ -147,3 +148,34 @@ def aicc(model, x_coords, y_coords):
     # corrects AIC's tendency to favor overly complicated models with small sample size
     correction = (2 * K * (K + 1)) / (n - K - 1)
     return aic + correction
+
+# turns a list of AICc scores into shares of support that add to 1
+def akaikeWeights(aiccValues):
+    # find the best AICc score:
+    best = None
+    for value in aiccValues:
+        if value is not None:
+            if best is None or value < best:
+                best = value
+    # if every value is None, no model can be compared
+    if best is None:
+        return [None] * len(aiccValues)
+    # calculate and add score of each aiccValues
+    scores, total = [], 0
+    for value in aiccValues:
+        if value == None:
+            scores.append(None)
+        else:
+            difference = value - best
+            score = math.exp(-difference / 2) # relative likelihood
+            scores.append(score)
+            total += score
+    # weight each score to sum up to 1
+    weights = []
+    for score in scores:
+        if score == None:
+            weights.append(None)
+        else:
+            weights.append(score / total)
+    return weights
+    
