@@ -129,3 +129,21 @@ def crossValidatedRmse(model, x_coords, y_coords, foldCount = None):
 
     return rmse(heldOutErrors)
 
+def aicc(model, x_coords, y_coords):
+    residuals = getResiduals(model, x_coords, y_coords)
+    if residuals is None:
+        return None
+    n = len(x_coords)
+    K = model.paramCount + 1
+    # the correction term divides by (n - K - 1), so we need enough points
+    # for example, cubic has K = 5 and therefore needs at least 7 points
+    if n - K - 1 <= 0:
+        return None
+    squaredError = sumOfSquares(residuals)
+    # avoids the perfect fitting case in which parameter count is same as data points
+    if squaredError <= 0:
+        return None
+    aic = n * math.log(squaredError / n) + 2 * K
+    # corrects AIC's tendency to favor overly complicated models with small sample size
+    correction = (2 * K * (K + 1)) / (n - K - 1)
+    return aic + correction
