@@ -282,13 +282,13 @@ class PowerModel(Model):
         return True
 
     def predict(self, x):
-        if not self.isFitted:
+        if not self.isFitted or x<=0:
             return None
         return self.a * (x**self.b)
 
     def getEquation(self):
         if not self.isFitted:
-                    return ''
+            return ''
         aStr, bStr = formatNumber(self.a), formatNumber(self.b)
         if self.b == 0:
                     return f'y = {aStr}'
@@ -317,7 +317,7 @@ class LogarithmicModel(Model):
     def fit(self, x_coords, y_coords):
         works, message = self.canFit(x_coords, y_coords)
         if not works:
-            return True
+            return False
         A = [[1, math.log(x)] for x in x_coords] # build design matrix
         solution = linalg.leastSquares(A, y_coords)
         if solution == None:

@@ -113,8 +113,8 @@ def crossValidatedRmse(model, x_coords, y_coords, foldCount = None):
         if not works:
             continue
 
-        # if not practice.fit(trainXs, trainYs):
-        #     continue
+        if not practice.fit(trainXs, trainYs):
+            continue
          
         for j in range(len(testXs)):
             # safePredict will convert failure of prediction into None instead of crashing 
@@ -178,4 +178,3 @@ def akaikeWeights(aiccValues):
         else:
             weights.append(score / total)
     return weights
-    
