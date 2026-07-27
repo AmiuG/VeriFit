@@ -56,4 +56,13 @@ class AnalysisEngine:
         result.cvRmse = stats.crossValidatedRmse(model, x_coords, y_coords)
         result.aicc = stats.aicc(model, x_coords, y_coords)
         return result
+
+    # get aicc values of models in the order of ranking and return the weight
+    def assignAkaikeWeights(self):
+        aiccValues = []
+        for result in self.results:
+            aiccValues.append(result.aicc)
+        weights = stats.akaikeWeights(aiccValues)
+        for i in range(len(self.results)):
+            self.results[i].akaikeWeight = weights[i]
             
