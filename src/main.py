@@ -33,7 +33,7 @@ def fit(app):
     y_coords = [p[1] for p in app.points]
     # run each models for given x coordinates and y coordinates
     for model in models.makeAllModels():
-        works, message = m.canFit(x_coords, y_coords)
+        works, message = model.canFit(x_coords, y_coords)
         if not works:
             continue
         if not model.fit(x_coords, y_coords):
@@ -65,3 +65,56 @@ def onKeyPress(app, key):
     if key == 'c':
         app.points = []
         fit(app)
+
+def drawCurve(model, color):
+    prevX, prevY = None, None
+    steps = 100
+    for i in range(steps + 1):
+        x = xMin + (xMax - xMin) * i / steps
+        y = stats.safePredict(model, x)
+        if y is None:
+            prevX = None
+            continue
+        px, py = toScreen(x, y)
+        if not inGraph(px, py):
+            prevX = None
+            continue
+        if prevX is not None:
+            drawLine(prevX, prevY, px, py, fill=color, lineWidth=2)
+        prevX, prevY = px, py
+
+def redrawAll(app):
+    drawLabel('Click in the graph to add points (c = clear)',
+              20, 20, size=16, bold=True, align='left')
+    drawRect(graphLeft, graphTop, graphRight - graphLeft, graphBottom - graphTop,
+             fill='white', border='gray')
+
+    # graph top 3 graphs
+    for i in range(min(3, len(app.results))):
+        drawCurve(app.results[i][0], curveColors[i])
+    # draw points
+    for p in app.points:
+        px, py = toScreen(p[0], p[1])
+        drawCircle(px, py, 4, fill='black')
+    # ranked list on the right
+    drawLabel('Ranked models', 520, 55, size=14, bold=True, align='left')
+    if len(app.results) < 2:
+        drawLabel('Add at least 2 points.', 520, 80, size=12, align='left')
+    else:
+        for i in range(len(app.results)):
+            model = app.results[i][0]
+            cv = app.results[i][1]
+            if cv is None:
+                cvText = 'n/a'
+            else:
+                cvText = str(pythonRound(cv, 3))
+            color = curveColors[i] if i < 3 else 'black'
+            drawLabel(str(i + 1) + '. ' + model.name + '   cv=' + cvText,
+                        520, 80 + i * 45, size=12, align='left', fill=color)
+            drawLabel(model.getEquation(), 520, 80 + i * 45 + 15,
+                        size=10, align='left', fill='gray')
+
+def main():
+    runApp()
+
+main()
