@@ -60,3 +60,8 @@ def onMousePress(app, mouseX, mouseY):
         x, y = toData(mouseX, mouseY)
         app.points.append(x,y)
         fit(app)
+
+def onKeyPress(app, key):
+    if key == 'c':
+        app.points = []
+        fit(app)
