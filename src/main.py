@@ -65,7 +65,9 @@ def onKeyPress(app, key):
     if key == 'c':
         app.points = []
         fit(app)
-
+####################################################################
+# written by Claude Opus 4.8, Jul 26, 2026
+####################################################################
 def drawCurve(model, color):
     prevX, prevY = None, None
     steps = 100
@@ -82,6 +84,7 @@ def drawCurve(model, color):
         if prevX is not None:
             drawLine(prevX, prevY, px, py, fill=color, lineWidth=2)
         prevX, prevY = px, py
+####################################################################
 
 def redrawAll(app):
     drawLabel('Click in the graph to add points (c = clear)',
