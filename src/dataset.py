@@ -33,13 +33,13 @@ def parseNumber(text):
     return (True, value)
 
 # Dataset class will manage:
-# 1. active and excluded points
-# 2. data editing
-# 3. undo history
-# 4. x-coordinate shifiting
-# 5. ranges
-# 6. warnings
-# 7. validation
+#   active and excluded points
+#   data editing
+#   undo history
+#   x-coordinate shifiting
+#   ranges
+#   warnings
+#   validation
 class Dataset:
     # if the given value is larger than this value,
     # we will shift the values before fitting to avoid error
@@ -86,6 +86,26 @@ class Dataset:
     # returns if the x-values are shifted by self.xOffset
     def usesOffset(self):
         return self.xOffset != 0
+
+    def updateOffset(self):
+        rawX_coords = self.getRawXs()
+        # checks whether there are no active x-values
+        if len(rawX_coords):
+            self.xOffset = 0
+            return
+        # checks whether largest x value is larger than 1000
+        biggest = 0
+        for x in rawX_coords:
+            if abs(x) > biggest:
+                biggest = abs(x)
+        if biggest <= Dataset.largestX:
+            self.xOffset = 0
+        else:
+            # shifts the data points to sit aroung the origin
+            avg = sum(rawX_coords) // len(rawX_coords)
+            self.xOffset = avg
+
+
     
     
             
