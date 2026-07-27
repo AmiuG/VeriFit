@@ -45,7 +45,7 @@ class AnalysisEngine:
         # akaike weights
         self.assignAkaikeWeights()
         # assign color
-        self.assignColors()
+        self.assignColorsAndVisibility()
 
         return self.results
 
@@ -65,4 +65,9 @@ class AnalysisEngine:
         weights = stats.akaikeWeights(aiccValues)
         for i in range(len(self.results)):
             self.results[i].akaikeWeight = weights[i]
-            
+
+    def assignColorsAndVisibility(self):
+        for i in range(len(self.results)):
+            self.results[i].colorIndex = i
+            # top three models are visible
+            self.results[i].isVisible is True if (i < 3) else False
