@@ -105,6 +105,45 @@ class Dataset:
             avg = sum(rawX_coords) // len(rawX_coords)
             self.xOffset = avg
 
+    def addPoint(self, x, y):
+        self.points.append(DataPoint(x,y))
+        self.updateOffset()
+        return True
+
+    def isValidIndex(self, index):
+        return 0 <= index < len(self.points)
+
+    def editPoint(self, index, x, y):
+        if not self.isValidIndex(index):
+            return False
+        self.point[index].x, self.point[index].y = x, y
+        self.updateOffset()
+        return True
+
+    def deletePoint(self, index, x, y):
+        if not self.isValidIndex(index):
+            return False
+        self.points.pop(index)
+        self.updateOffset()
+        return True
+
+    def clear(self):
+        self.points = []
+        self.updateOffset()
+
+    def toggleExcluded(self, index):
+        if not self.isValidIndex(index):
+            return False
+        point = self.points[index]
+        point.isExcluded = not point.isExcluded
+        self.updateOffset()
+        return True
+
+    def includeAll(self):
+        for point in self.points:
+            point.isExcluded = False
+        self.updateOffset()
+    
 
     
     
