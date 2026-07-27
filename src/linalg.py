@@ -91,3 +91,11 @@ def leastSquares(A, y):
     #right hand side
     Aty = multiplyMatrices(At, y)
     return solveSystem(AtA, Aty)
+
+def identitymatrix(n):
+    result = []
+    for i in range(n):
+        row = [1 if i == j else 0 for j in range(n)]
+        result.append(row)
+    return result
+
