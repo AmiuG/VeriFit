@@ -143,10 +143,44 @@ class Dataset:
         for point in self.points:
             point.isExcluded = False
         self.updateOffset()
-    
 
-    
-    
-            
+    # ranges for future usage on graphing
+    def getRawXRange(self):
+        xs = self.getRawXs()
+        if len(xs) == 0:
+            return None
+        return (min(xs), max(xs))
+ 
+    def getYRange(self):
+        ys = self.getYs()
+        if len(ys) == 0:
+            return None
+        return (min(ys), max(ys))
 
+    # returns true when a requested prediction is outside of given data range
+    # prediction tool will later warn that the prediction may be inaccurate
+    def isExtrapolation(self, x):
+        xRange = self.getRawXRange()
+        if xRange == None:
+            return True
+        return not (xRange[0] <= x <= xRange[1])
 
+    # these are the warnings that UI will display
+    def getWarnings(self):
+        warnings = []
+        n = self.getActiveCount()
+        if n == 0:
+            return ["There's no active points."]
+        if n < 5:
+            warnings.append(f'Ranking could be unreliable with {n} points.')
+        elif n < 8:
+            warnings.append(f'Ranking may not be strong enough with {n} points.')
+        differentXs = len(set(self.getRawXs()))
+        if differentXs < n:
+            warnings.append('Some points share same x-value.')
+        if differentXs < 3:
+            warnings.append('Too few different x-values to compare models.')
+        return warnings
+ 
+    def __repr__(self):
+        return f'Dataset with {self.getActiveCount()} active points'
