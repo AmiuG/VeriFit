@@ -52,3 +52,11 @@ def toData(px, py):
     y = yMin + (graphBottom - py) / (graphBottom - graphTop) * (yMax - yMin)
     return x, y
 
+def inGraph(x, y):
+    return (graphLeft <= x <= graphRight) and (graphTop <= y <= graphBottom)
+
+def onMousePress(app, mouseX, mouseY):
+    if inGraph(mouseX, mouseY):
+        x, y = toData(mouseX, mouseY)
+        app.points.append(x,y)
+        fit(app)
