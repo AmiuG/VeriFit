@@ -48,3 +48,12 @@ class AnalysisEngine:
         self.assignColors()
 
         return self.results
+
+    def scoreModel(model, x_coords, y_coords):
+        result = FitResults(model)
+        result.r2 = stats.rSquared(model, x_coords, y_coords)
+        result.trainRmse = stats.trainingRmse(model, x_coords, y_coords)
+        result.cvRmse = stats.crossValidatedRmse(model, x_coords, y_coords)
+        result.aicc = stats.aicc(model, x_coords, y_coords)
+        return result
+            
