@@ -31,3 +31,63 @@ def parseNumber(text):
         return (False, 'Number is too large')
 
     return (True, value)
+
+# Dataset class will manage:
+# 1. active and excluded points
+# 2. data editing
+# 3. undo history
+# 4. x-coordinate shifiting
+# 5. ranges
+# 6. warnings
+# 7. validation
+class Dataset:
+    # if the given value is larger than this value,
+    # we will shift the values before fitting to avoid error
+    largestX = 1000
+
+    def __init__(self, x_coords = None, y_coords = None):
+        self.points = []
+        self.undoStack = []
+        self.xOffset = 0
+        if (x_coords is not None) and (y_coords is not None):
+            for i in range(len(x_coords)):
+                self.points.append(DataPoint(x_coords[i], y_coords[i]))
+        self.updateOffset()
+
+    # Basic information about the dataset
+    def getPointCount(self):
+        return len(self.points)
+    def getActivePoints(self):
+        active = []
+        for point in self.points:
+            if not point.isExcluded:
+                active.append(point)
+        return active
+    def getActiveCount(self):
+        return len(self.getActivePoints())
+    # returns the original x-values of active points
+    def getRawXs(self):
+        x_coords = []
+        for point in self.getActivePoints():
+            x_coords.append(point.x)
+        return x_coords
+    # returns the original y-values of active points
+    def getRawYs(self):
+        y_coords = []
+        for point in self.getActivePoints():
+            y_coords.append(point.y)
+        return y_coords
+    # returns the x-values that are shifted by self.xOffset to feed models
+    def getFitXs(self):
+        x_coords = []
+        for point in self.getActivePoints():
+            x_coords.append(point.x - self.xOffset)
+        return x_coords
+    # returns if the x-values are shifted by self.xOffset
+    def usesOffset(self):
+        return self.xOffset != 0
+    
+    
+            
+
+
