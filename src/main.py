@@ -58,7 +58,7 @@ def inGraph(x, y):
 def onMousePress(app, mouseX, mouseY):
     if inGraph(mouseX, mouseY):
         x, y = toData(mouseX, mouseY)
-        app.points.append(x,y)
+        app.points.append((x,y))
         fit(app)
 
 def onKeyPress(app, key):
@@ -97,9 +97,9 @@ def redrawAll(app):
         px, py = toScreen(p[0], p[1])
         drawCircle(px, py, 4, fill='black')
     # ranked list on the right
-    drawLabel('Ranked models', 520, 55, size=14, bold=True, align='left')
+    drawLabel('Ranked models', 640, 55, size=14, bold=True, align='left')
     if len(app.results) < 2:
-        drawLabel('Add at least 2 points.', 520, 80, size=12, align='left')
+        drawLabel('Add at least 2 points.', 640, 80, size=12, align='left')
     else:
         for i in range(len(app.results)):
             model = app.results[i][0]
@@ -107,11 +107,11 @@ def redrawAll(app):
             if cv is None:
                 cvText = 'n/a'
             else:
-                cvText = str(pythonRound(cv, 3))
+                cvText = str(cv)
             color = curveColors[i] if i < 3 else 'black'
             drawLabel(str(i + 1) + '. ' + model.name + '   cv=' + cvText,
-                        520, 80 + i * 45, size=12, align='left', fill=color)
-            drawLabel(model.getEquation(), 520, 80 + i * 45 + 15,
+                        640, 80 + i * 45, size=12, align='left', fill=color)
+            drawLabel(model.getEquation(), 640, 80 + i * 45 + 15,
                         size=10, align='left', fill='gray')
 
 def main():
