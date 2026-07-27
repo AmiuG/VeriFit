@@ -90,7 +90,7 @@ class Dataset:
     def updateOffset(self):
         rawX_coords = self.getRawXs()
         # checks whether there are no active x-values
-        if len(rawX_coords):
+        if len(rawX_coords) == 0:
             self.xOffset = 0
             return
         # checks whether largest x value is larger than 1000
@@ -120,7 +120,7 @@ class Dataset:
         self.updateOffset()
         return True
 
-    def deletePoint(self, index, x, y):
+    def deletePoint(self, index):
         if not self.isValidIndex(index):
             return False
         self.points.pop(index)
@@ -152,7 +152,7 @@ class Dataset:
         return (min(xs), max(xs))
  
     def getYRange(self):
-        ys = self.getYs()
+        ys = self.getRawYs()
         if len(ys) == 0:
             return None
         return (min(ys), max(ys))

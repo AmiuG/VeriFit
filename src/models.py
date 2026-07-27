@@ -346,7 +346,7 @@ class FlatlineModel(Model):
     def __init__(self):
         super().__init__()
         self.name = 'Flatline'
-        self.paramCount = 2
+        self.paramCount = 1
         self.c = None
 
     # not necessary since parent class can handle it, but here for style purpose
