@@ -99,3 +99,19 @@ def identitymatrix(n):
         result.append(row)
     return result
 
+def invert(A):
+    n = len(A)
+    I = identitymatrix(n)
+    # find each columns of the inverse
+    cols = []
+    for i in range(n):
+        e = [[I[row][i]] for row in range(n)]
+        solution = solveSystem(A, e)
+        if solution is None:
+            return None
+        cols.append(solution)
+    # change the list of each colums into valid matrix
+    inverse = []
+    for row in range(n):
+        inverse.append([cols[i][row] for i in range(n)])
+    return inverse
