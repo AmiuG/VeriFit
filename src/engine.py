@@ -12,3 +12,39 @@ class AnalysisEngine:
         self.candidates = candidates
         self.results = []
         self.unavailable = []
+
+    def analyze(self):
+        # in case the data changed, reset the results and unavailable
+        self.results = []
+        self.unavailable = []
+
+        fitX_coords = self.dataset.getFitXs()
+        y_coords = self.dataset.getRawYs()
+
+        # find models that cannot be fitted and fit rest
+        fittedModels = []
+        for model in self.candidates:
+            works, message = model.canFit(fitX_coords, y_coords)
+            if not works:
+                self.unavailable.append((model.name, message))
+                continue
+            # even if the canFit return True, but fit might not work
+            if not model.fit(fitX_coords, y_coords):
+                self.unavailable.append((model.name, 'Could not be fitted'))
+                continue
+            fittedModels.append(model)
+
+        # score each fitted models
+        for model in fittedModels:
+            result = self.scoreModel(model, fitX_coords, y_coords)
+            self.results.append(result)
+
+        # rank by cvRMSE, lowest to largest
+        self.results.sort(key=lambda r: r.rankingScore())
+
+        # akaike weights
+        self.assignAkaikeWeights()
+        # assign color
+        self.assignColors()
+
+        return self.results
