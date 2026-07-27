@@ -41,3 +41,14 @@ def fit(app):
         app.results.append([model, stats.crossValidatedRmse(model, x_coords, y_coords)])
     # learned how to sort list with None without crashing https://docs.python.org/3/howto/sorting.html
     app.results.sort(key=lambda r: r[1] if r[1] is not None else 10 ** 9)
+
+def toScreen(x, y):
+    px = graphLeft + (x - xMin) / (xMax - xMin) * (graphRight - graphLeft)
+    py = graphBottom - (y - yMin) / (yMax - yMin) * (graphBottom - graphTop)
+    return px, py
+
+def toData(px, py):
+    x = xMin + (px - graphLeft) / (graphRight - graphLeft) * (xMax - xMin)
+    y = yMin + (graphBottom - py) / (graphBottom - graphTop) * (yMax - yMin)
+    return x, y
+
