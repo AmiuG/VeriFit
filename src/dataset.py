@@ -105,7 +105,28 @@ class Dataset:
             avg = sum(rawX_coords) // len(rawX_coords)
             self.xOffset = avg
 
+    def saveStateForUndo(self):
+        snapshot = []
+        for point in self.points:
+            snapshot.append([point.x, point.y, point.isExcluded])
+        self.undoStack.append(snapshot)
+        if len(self.undoStack) > 50:
+            self.undoStack.pop(0)
+
+    def undo(self):
+        if len(self.undoStack) == 0:
+            return False
+        snapshot = self.undoStack.pop()
+        self.points = []
+        for x, y, isExcluded in snapshot:
+            point = DataPoint(x,y)
+            point.isExcluded = isExcluded
+            self.points.append(point)
+        self.updateOffset()
+        return True
+
     def addPoint(self, x, y):
+        self.saveStateForUndo()
         self.points.append(DataPoint(x,y))
         self.updateOffset()
         return True
@@ -116,6 +137,7 @@ class Dataset:
     def editPoint(self, index, x, y):
         if not self.isValidIndex(index):
             return False
+        self.saveStateForUndo()
         self.point[index].x, self.point[index].y = x, y
         self.updateOffset()
         return True
@@ -123,6 +145,7 @@ class Dataset:
     def deletePoint(self, index):
         if not self.isValidIndex(index):
             return False
+        self.saveStateForUndo()
         self.points.pop(index)
         self.updateOffset()
         return True
@@ -134,6 +157,7 @@ class Dataset:
     def toggleExcluded(self, index):
         if not self.isValidIndex(index):
             return False
+        self.saveStateForUndo()
         point = self.points[index]
         point.isExcluded = not point.isExcluded
         self.updateOffset()
