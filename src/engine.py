@@ -136,4 +136,9 @@ class AnalysisEngine:
                     f'({simpler.model.name}) is preferred.')
 
         return str()
-    
+
+    def simplerOf(self, resultA, resultB):
+        if resultA.model.paramCount < resultB.model.paramCount:
+            return resultA
+        else:
+            return resultB
