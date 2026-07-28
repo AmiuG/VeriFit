@@ -20,8 +20,10 @@ class FitResults:
         self.standardErrors = None
         self.interpretations = []
 
+        self.offset = 0
         # in case the user turns off viewing a model in graph
         self.isVisible = False
+        self.colorIndex = None
 
     def rankingScore(self):
         # the engine sorts models by cross-validated RMSE, lowest first
@@ -30,6 +32,9 @@ class FitResults:
         if self.cvRmse == None:
             return float('inf')
         return self.cvRmse
+
+    def getEquation(self):
+        return self.model.getEquation(self.offset)
 
     # returns True or False whether the values are adjusted
     def isAdjusted(self):
@@ -45,7 +50,27 @@ class AnalysisEngine:
         self.candidates = candidates
         self.results = []
         self.unavailable = []
+        self.tieMessage = str()
 
+    # pick what llist of x-values a model should be fitted on
+    # polynomials are okay if x values are shifter, but it's not for power and logarithmic
+    def x_coordsFor(self, model):
+        if model.usesShiftedX:
+            return self.dataset.getFitXs()
+        return self.dataset.getRawXs()
+    
+    # gives the offset a model's printed equation has to show
+    def offsetFor(self, model):
+        if model.usesShiftedX:
+            return self.dataset.xOffset
+        return 0
+
+    def predictAt(self, result, x):
+        if result.model.usesShiftedX:
+            x = self.dataset.toFitX(x)
+        return stats.safePredict(result.model, x)
+
+    
     def analyze(self):
         # in case the data changed, reset the results and unavailable
         self.results = []
@@ -82,7 +107,7 @@ class AnalysisEngine:
 
         return self.results
 
-    def scoreModel(model, x_coords, y_coords):
+    def scoreModel(self, model, x_coords, y_coords):
         result = FitResults(model)
         result.r2 = stats.rSquared(model, x_coords, y_coords)
         result.trainRmse = stats.trainingRmse(model, x_coords, y_coords)
@@ -103,7 +128,7 @@ class AnalysisEngine:
         for i in range(len(self.results)):
             self.results[i].colorIndex = i
             # top three models are visible
-            self.results[i].isVisible is True if (i < 3) else False
+            self.results[i].isVisible = True if (i < 3) else False
 
     # detect if the best model and second model are technically tied
     # then, it will recommend whichever is simpler
