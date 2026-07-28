@@ -105,4 +105,35 @@ class AnalysisEngine:
             # top three models are visible
             self.results[i].isVisible is True if (i < 3) else False
 
+    # detect if the best model and second model are technically tied
+    # then, it will recommend whichever is simpler
+    def detectTies(self):
+        if len(self.results) < 2:
+            return str()
+
+        best = self.results[0]
+        second = self.results[1]
+        isClose = False
+
+        if best.akaikeWeight is not None and second.akaikeWeight is not None:
+            # the program will not single out the winner if the second model
+            # is supported by akaike by at least 25%
+            # the fact that second beat the best in akaikeWeight means they're close
+            if (second.akaikeWeight >= 0.25) or (second.akaikeWeight > best.akaikeWeight):
+                isClose = True
+        else:
+            # in case akaikeWeights are not calculated
+            if best.cvRmse is not None and second.cvRmse is not None:
+                    gap = abs(second.cvRmse - best.cvRmse)
+                    reference = max(best.cvRmse, 10 ** -9)
+                    if gap / reference <= 0.10:
+                        isClose = True
+
+        if isClose:
+            simpler = self.simplerOf(best, second)
+            return (f'{best.model.name} and {second.model.name} perform '
+                    f'almost identically. The simpler model '
+                    f'({simpler.model.name}) is preferred.')
+
+        return str()
     
