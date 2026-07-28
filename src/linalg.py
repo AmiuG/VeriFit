@@ -92,7 +92,7 @@ def leastSquares(A, y):
     Aty = multiplyMatrices(At, y)
     return solveSystem(AtA, Aty)
 
-def identitymatrix(n):
+def identityMatrix(n):
     result = []
     for i in range(n):
         row = [1 if i == j else 0 for j in range(n)]
@@ -101,7 +101,7 @@ def identitymatrix(n):
 
 def invert(A):
     n = len(A)
-    I = identitymatrix(n)
+    I = identityMatrix(n)
     # find each columns of the inverse
     cols = []
     for i in range(n):

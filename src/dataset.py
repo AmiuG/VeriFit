@@ -83,6 +83,8 @@ class Dataset:
         for point in self.getActivePoints():
             x_coords.append(point.x - self.xOffset)
         return x_coords
+    def toFitX(self, x):
+        return x-self.xOffset
     # returns if the x-values are shifted by self.xOffset
     def usesOffset(self):
         return self.xOffset != 0
@@ -138,7 +140,7 @@ class Dataset:
         if not self.isValidIndex(index):
             return False
         self.saveStateForUndo()
-        self.point[index].x, self.point[index].y = x, y
+        self.points[index].x, self.points[index].y = x, y
         self.updateOffset()
         return True
 
@@ -151,8 +153,10 @@ class Dataset:
         return True
 
     def clear(self):
+        self.saveStateForUndo()
         self.points = []
         self.updateOffset()
+        return True
 
     def toggleExcluded(self, index):
         if not self.isValidIndex(index):
@@ -164,9 +168,11 @@ class Dataset:
         return True
 
     def includeAll(self):
+        self.saveStateForUndo()
         for point in self.points:
             point.isExcluded = False
         self.updateOffset()
+        return True
 
     # ranges for future usage on graphing
     def getRawXRange(self):

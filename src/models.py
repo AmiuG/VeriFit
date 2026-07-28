@@ -11,14 +11,26 @@ def formatNumber(value):
 def almostOne(value):
     return abs(value - 1) < 10 ** -10
 
+def formatXTerm(offset):
+    if offset == 0:
+        return 'x'
+    elif offset > 0:
+        return f'(x - {formatNumber(offset)})'
+    else:
+        return f'(x + {formatNumber(abs(offset))})'
+
 # learned inheritence from this YouTube video https://youtu.be/RSl87lqOXDE?si=feKdyYe_9CdtmLQ7
 
 class Model:
+    usesShiftedX = True
     def __init__(self):
         self.name = 'Model'
         self.paramCount = 0 # number of parameters model should find
         self.params = None # will eventually store the fitted coefficients
         self.isFitted = False
+
+        # will be true when a sensitivity slider edits the parameters
+        self.isAdjusted = False
 
     # check if the model has enough amount of points for fitting
     def canFit(self, x_coords, y_coords):
@@ -40,6 +52,22 @@ class Model:
         return None
     def getEquation(self):
         return ''
+
+    def reset(self):
+            self.params = None
+            self.isFitted = False
+            self.isAdjusted = False
+    
+    def setParams(self, params):
+        if (not self.isFitted) or (len(params) != self.paramCount):
+            return False
+        self.params = list(params)
+        self.isAdjusted = True
+        self.applyParams()
+        return True
+
+    def applyParams(self):
+        pass
 
     # tell what state the model is currently in
     def __repr__(self):
@@ -69,8 +97,7 @@ class PolynomialModel(Model):
             if power > self.degree:
                 self.degree = power
         # reset the past fit
-        self.params = None
-        self.isFitted = False
+        self.reset()
 
     # checks if the model has constant term because it could affect results
     def hasConstantTerm(self):
@@ -105,6 +132,7 @@ class PolynomialModel(Model):
         else:
             self.params = solution
             self.isFitted = True
+            self.isAdjusted = False
             return True
 
     # return predicted y value by the fitted model
@@ -116,9 +144,10 @@ class PolynomialModel(Model):
             total += self.params[i]*(x**self.powers[i])
         return total
 
-    def getEquation(self):
+    def getEquation(self, offset = 0):
         if not self.isFitted:
             return ''
+        xTerm = formatXTerm(offset)
         leftHandSide = 'y'
         rightHandSide = ''
         # add terms from the largest power to smallest power
@@ -141,9 +170,9 @@ class PolynomialModel(Model):
                 rightHandSide += formatNumber(abs(coefficient))
             # add x variable and exponent power
             if power == 1:
-                rightHandSide += 'x'
+                rightHandSide += xTerm
             elif power != 0:
-                rightHandSide += f'x^{power}'
+                rightHandSide += f'{xTerm}^{power}'
         # if every coefficient was zero
         if rightHandSide == '':
             rightHandSide = '0'
@@ -212,8 +241,7 @@ class ExponentialModel(Model):
         if solution is None:
             return False
         # extract ln(|a|) and b values from solution
-        ln_a = solution[0][0] if isinstance(solution[0], list) else solution[0]
-        b_val = solution[1][0] if isinstance(solution[1], list) else solution[1]
+        ln_a, b_val = solution[0], solution[1]
         # assign self.a and self.b with right sign
         abs_a = math.exp(ln_a)
         self.a = -abs_a if isNegative else abs_a
@@ -221,6 +249,7 @@ class ExponentialModel(Model):
         # add self.a and self.b to parameters
         self.params = [self.a, self.b]
         self.isFitted = True
+        self.isAdjusted = False
         return True
 
     def predict(self, x):
@@ -228,7 +257,10 @@ class ExponentialModel(Model):
             return None
         return self.a * math.exp(self.b * x)
 
-    def getEquation(self):
+    def applyParams(self):
+        self.a, self.b = self.params[0], self.params[1]
+
+    def getEquation(self, offset = 0):
         if not self.isFitted:
             return ''
         aStr, bStr = formatNumber(self.a), formatNumber(self.b)
@@ -242,6 +274,7 @@ class ExponentialModel(Model):
 
 
 class PowerModel(Model):
+    usesShiftedX = False
     def __init__(self):
         super().__init__()
         self.name = 'Power'
@@ -263,7 +296,7 @@ class PowerModel(Model):
     def fit(self, x_coords, y_coords):
         works, message = self.canFit(x_coords, y_coords)
         if not works:
-            return None
+            return False
         ln_xs = [math.log(abs(x)) for x in x_coords]
         ln_ys = [math.log(abs(y)) for y in y_coords]
         A = [[1,ln_x] for ln_x in ln_xs] # build design matrix
@@ -271,22 +304,25 @@ class PowerModel(Model):
         if solution is None:
             return False
         # extract ln(|a|) and b values from solution
-        ln_a = solution[0][0] if isinstance(solution[0], list) else solution[0]
-        b_val = solution[1][0] if isinstance(solution[1], list) else solution[1]
+        ln_a, b_val = solution[0], solution[1]
         # assign self.a and self.b
         self.a = math.exp(ln_a)
         self.b = b_val
         # add self.a and self.b to parameters
         self.params = [self.a, self.b]
         self.isFitted = True
+        self.isAdjusted = False
         return True
 
     def predict(self, x):
         if not self.isFitted or x<=0:
             return None
         return self.a * (x**self.b)
+    
+    def applyParams(self):
+        self.a, self.b = self.params[0], self.params[1]
 
-    def getEquation(self):
+    def getEquation(self, offset = 0):
         if not self.isFitted:
             return ''
         aStr, bStr = formatNumber(self.a), formatNumber(self.b)
@@ -299,6 +335,7 @@ class PowerModel(Model):
 
 
 class LogarithmicModel(Model):
+    usesShiftedX = False
     def __init__(self):
         super().__init__()
         self.name = 'Logarithmic'
@@ -320,12 +357,13 @@ class LogarithmicModel(Model):
             return False
         A = [[1, math.log(x)] for x in x_coords] # build design matrix
         solution = linalg.leastSquares(A, y_coords)
-        if solution == None:
+        if solution is None:
             return False
         # a and b can simply be computed with leastSquares
         self.a, self.b = solution[0], solution[1]
         self.params = [self.a, self.b]
         self.isFitted = True
+        self.isAdjusted = False
         return True
 
     def predict(self, x):
@@ -333,7 +371,10 @@ class LogarithmicModel(Model):
             return None
         return self.a + self.b * math.log(x)
 
-    def getEquation(self):
+    def applyParams(self):
+        self.a, self.b = self.params[0], self.params[1]
+
+    def getEquation(self, offset = 0):
         if not self.isFitted:
             return ''
         aStr, bStr = formatNumber(self.a), formatNumber(abs(self.b))
@@ -364,14 +405,18 @@ class FlatlineModel(Model):
         self.c = sum(ys) / len(ys)
         self.params = [self.c]
         self.isFitted = True
+        self.isAdjusted = False
         return True
 
     def predict(self, x):
         if not self.isFitted:
             return None
         return self.c # always returns the constant value regardless of x
+    
+    def applyParams(self):
+        self.c = self.params[0]
 
-    def getEquation(self):
+    def getEquation(self, offset = 0):
         if not self.isFitted:
             return ''
         return f'y = {formatNumber(self.c)}'

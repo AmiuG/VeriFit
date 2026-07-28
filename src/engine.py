@@ -69,32 +69,32 @@ class AnalysisEngine:
         if result.model.usesShiftedX:
             x = self.dataset.toFitX(x)
         return stats.safePredict(result.model, x)
-
     
     def analyze(self):
         # in case the data changed, reset the results and unavailable
         self.results = []
         self.unavailable = []
 
-        fitX_coords = self.dataset.getFitXs()
         y_coords = self.dataset.getRawYs()
 
         # find models that cannot be fitted and fit rest
         fittedModels = []
         for model in self.candidates:
-            works, message = model.canFit(fitX_coords, y_coords)
+            model.reset()
+            x_coords = self.x_coordsFor(model)
+            works, message = model.canFit(x_coords, y_coords)
             if not works:
                 self.unavailable.append((model.name, message))
                 continue
             # even if the canFit return True, but fit might not work
-            if not model.fit(fitX_coords, y_coords):
+            if not model.fit(x_coords, y_coords):
                 self.unavailable.append((model.name, 'Could not be fitted'))
                 continue
             fittedModels.append(model)
 
         # score each fitted models
         for model in fittedModels:
-            result = self.scoreModel(model, fitX_coords, y_coords)
+            result = self.scoreModel(model, x_coords, y_coords)
             self.results.append(result)
 
         # rank by cvRMSE, lowest to largest
@@ -104,13 +104,19 @@ class AnalysisEngine:
         self.assignAkaikeWeights()
         # assign color
         self.assignColorsAndVisibility()
+        self.tieMessage = self.detectTies()
 
         return self.results
 
     def scoreModel(self, model, x_coords, y_coords):
         result = FitResults(model)
+        result.offset = self.offsetFor(model)
+        result.residuals = stats.getResiduals(model, x_coords, y_coords)
         result.r2 = stats.rSquared(model, x_coords, y_coords)
-        result.trainRmse = stats.trainingRmse(model, x_coords, y_coords)
+        result.trainRmse = stats.rmse(result.residuals)
+        # cvRMSE and AICc will be left blank on an adjusted model
+        if model.isAdjusted:
+            return result
         result.cvRmse = stats.crossValidatedRmse(model, x_coords, y_coords)
         result.aicc = stats.aicc(model, x_coords, y_coords)
         return result
