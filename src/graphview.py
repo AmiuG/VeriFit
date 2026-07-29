@@ -9,6 +9,16 @@ excludedColor = 'gray'
 curveColors = ['blue', 'red', 'green', 'purple', 'green', 'brown', 'black']
 extraCurveColor = 'gray'
 
+def niceStep(roughStep):
+    if roughStep <= 0:
+        return 1
+    power = math.floor(math.log10(roughStep))
+    base = 10 ** power
+    for multiple in [1, 2, 5]:
+        if roughStep <= multiple * base:
+            return multiple * base
+    return 10 * base
+
 def padRange(low, high):
     if low == high:
         # one point, or a column of identical values, has no width to pad.
