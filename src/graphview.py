@@ -119,3 +119,8 @@ class GraphView:
                 visible.append(result)
         for i in range(len(visible)-1, -1, -1):
             self.drawCurve(analysisEngine, visible[i], self.colorFor(visible[i]))
+
+    def drawEmptyMessage(self):
+        drawLabel('Add at least 2 points to see a fit.',
+                  self.left + self.width / 2, self.top + self.height / 2,
+                  size=14, fill=excludedColor)
