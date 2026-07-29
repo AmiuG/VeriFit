@@ -1,7 +1,7 @@
 import math
 
 #######################################################################
-# written by Claude Opus 4.8 / Jul 28, 2026 
+# written by Claude Opus 4.8 / Jul 25, 2026 
 #######################################################################
 def safePredict(model, x):
     # A model can fail to predict for legitimate reasons: a power model

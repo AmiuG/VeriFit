@@ -94,7 +94,7 @@ class AnalysisEngine:
 
         # score each fitted models
         for model in fittedModels:
-            result = self.scoreModel(model, x_coords, y_coords)
+            result = self.scoreModel(model, self.x_coordsFor(model), y_coords)
             self.results.append(result)
 
         # rank by cvRMSE, lowest to largest

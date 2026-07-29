@@ -427,10 +427,3 @@ def makeAllModels():
     # Returns one fresh, unfitted object of every model type.
     return [LinearModel(), QuadraticModel(), CubicModel(),
             ExponentialModel(), PowerModel(), LogarithmicModel(), FlatlineModel()]
-        
-
-
-
-    
-
-    
