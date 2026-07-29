@@ -1,0 +1,369 @@
+from cmu_graphics import *
+import dataset
+
+panelFill = rgb(255, 255, 255)
+panelBorder = rgb(205, 205, 205)
+titleFill = rgb(242, 242, 242)
+textColor = 'black'
+mutedColor = rgb(125, 125, 125)
+errorColor = rgb(200, 40, 40)
+selectFill = rgb(219, 234, 254)
+editFill = rgb(254, 243, 199)
+buttonFill = rgb(248, 248, 248)
+buttonDown = rgb(226, 226, 226)
+
+
+# 3.0 -> '3', 2.5 -> '2.5', 1/3 -> '0.3333'
+def formatCell(value):
+    text = f'{value:.4f}'
+    number = float(text)
+    if number == int(number):
+        return str(int(number))
+    return text.rstrip('0').rstrip('.')
+
+
+class Panel:
+    titleHeight = 26
+
+    def __init__(self, left, top, width, height, title):
+        self.left, self.top = left, top
+        self.width, self.height = width, height
+        self.right, self.bottom = left + width, top + height
+        self.title = title
+
+    # where a panel's contents may start drawing
+    def contentTop(self):
+        return self.top + Panel.titleHeight
+
+    def contentHeight(self):
+        return self.height - Panel.titleHeight
+
+    def contains(self, mouseX, mouseY):
+        return (self.left <= mouseX <= self.right and
+                self.top <= mouseY <= self.bottom)
+
+    def drawFrame(self):
+        drawRect(self.left, self.top, self.width, self.height, fill=panelFill)
+        drawRect(self.left, self.top, self.width, Panel.titleHeight, fill=titleFill)
+        drawLabel(self.title, self.left + 10, self.top + Panel.titleHeight / 2,
+                  size=12, bold=True, align='left', fill=textColor)
+        drawRect(self.left, self.top, self.width, self.height,
+                 fill=None, border=panelBorder)
+
+
+class Button:
+    def __init__(self, left, top, width, height, label, action):
+        self.left, self.top = left, top
+        self.width, self.height = width, height
+        self.label = label
+        # a plain string that main.py switches on, so ui.py stays ignorant
+        # of what the button actually does
+        self.action = action
+
+    def contains(self, mouseX, mouseY):
+        return (self.left <= mouseX <= self.left + self.width and
+                self.top <= mouseY <= self.top + self.height)
+
+    def draw(self, enabled = True, pressed = False):
+        fill = buttonDown if pressed else buttonFill
+        drawRect(self.left, self.top, self.width, self.height,
+                 fill=fill, border=panelBorder)
+        drawLabel(self.label, self.left + self.width / 2,
+                  self.top + self.height / 2, size=11,
+                  fill=textColor if enabled else mutedColor)
+
+
+# ----------------------------------------------------------------------
+# THE DATA TABLE
+# ----------------------------------------------------------------------
+class DataTable:
+    rowHeight = 21 # each data row height
+    headerHeight = 20 # the x/y header height
+    footerHeight = 30 # the message at the bottom height
+    markWidth = 26 # row-number/exclusion column width
+    deleteWidth = 20 # delete column width
+    padding = 8 # empty space between the panel border and table
+
+    def __init__(self, panel):
+        self.panel = panel 
+        # which cell is being typed into. None means nothing is being edited.
+        self.editRow, self.editCol = None, None
+        self.currNum = ''
+        self.errorMessage = ''
+        # the blank row at the bottom. Its two cells are plain strings until
+        # both parse, at which point the row becomes a real DataPoint.
+        self.draftX, self.draftY = '', ''
+        self.scrollTop = 0
+
+        left = panel.left + DataTable.padding
+        usableWidth = panel.width - 2 * DataTable.padding
+        valueWidth = (usableWidth - DataTable.markWidth - DataTable.deleteWidth) / 2
+        self.markLeft = left
+        self.xLeft = left + DataTable.markWidth
+        self.yLeft = self.xLeft + valueWidth
+        self.deleteLeft = self.yLeft + valueWidth
+        self.valueWidth = valueWidth
+        self.rowsTop = panel.contentTop() + DataTable.headerHeight
+
+
+    # count how many rows can fit between the header and footer
+    def visibleRowCount(self):
+        space = self.panel.bottom - self.rowsTop - DataTable.footerHeight
+        return max(1, int(space // DataTable.rowHeight))
+
+    # the draft row sits one past the last real point
+    def totalRowCount(self, data):
+        return len(data.points) + 1
+
+    # calculate height of row that should be visible on the top, not necessairly first data
+    def rowTop(self, screenIndex):
+        return self.rowsTop + screenIndex * DataTable.rowHeight
+
+    # which (row, column) a click landed on, or None.
+    # column 0 is x, column 1 is y, 'mark' toggles exclusion, 'delete' removes.
+    def cellAt(self, mouseX, mouseY, data):
+        if not (self.rowsTop <= mouseY < self.rowsTop +
+                self.visibleRowCount() * DataTable.rowHeight):
+            return None
+        screenIndex = int((mouseY - self.rowsTop) // DataTable.rowHeight)
+        row = self.scrollTop + screenIndex
+        if row >= self.totalRowCount(data):
+            return None
+        if self.markLeft <= mouseX < self.xLeft:
+            return (row, 'mark')
+        if self.xLeft <= mouseX < self.yLeft:
+            return (row, 0)
+        if self.yLeft <= mouseX < self.deleteLeft:
+            return (row, 1)
+        if self.deleteLeft <= mouseX < self.deleteLeft + DataTable.deleteWidth:
+            return (row, 'delete')
+        return None
+
+    # when editing, self.editRow will have a row of a cell being edited
+    def isEditing(self):
+        return self.editRow is not None
+
+    # real points will take row from 0 to len(data.points)-1
+    def isDraftRow(self, row, data):
+        return row == len(data.points)
+
+    # text that should appear in a cell
+    def currentText(self, row, col, data):
+        if self.isDraftRow(row, data):
+            return self.draftX if col == 0 else self.draftY
+        point = data.points[row]
+        return formatCell(point.x if col == 0 else point.y)
+
+    # make sure the row is legal then edit
+    def startEdit(self, row, col, data):
+        if row < 0 or row >= self.totalRowCount(data):
+            self.cancelEdit()
+            return
+        self.editRow, self.editCol = row, col
+        self.currNum = self.currentText(row, col, data)
+        self.errorMessage = ''
+        self.scrollToRow(row)
+
+    def cancelEdit(self):
+        self.editRow, self.editCol = None, None
+        self.currNum = ''
+        self.errorMessage = ''
+
+    # make sure the target row is visible in the table
+    def scrollToRow(self, targetRow):
+        # if the target row is less than the top, simply make the top the target row
+        if targetRow < self.scrollTop:
+            self.scrollTop = targetRow
+
+        # if the target row is larger than the last visible row of the table,
+        # make the target row be the last row in the table
+        lastVisible = self.scrollTop + self.visibleRowCount() - 1
+        if targetRow > lastVisible:
+            self.scrollTop = targetRow - self.visibleRowCount() + 1
+        if self.scrollTop < 0:
+            self.scrollTop = 0
+
+    def scrollBy(self, rows, data):
+        highest = max(0, self.totalRowCount(data) - self.visibleRowCount())
+        self.scrollTop = min(highest, max(0, self.scrollTop + rows))
+
+
+    # adds self.currNum into the Dataset. Returns True when the value was
+    # in case it's illegal, the currNum is kept so the user can correct it.
+    def commitCell(self, data):
+        if not self.isEditing():
+            return True
+        works, message = dataset.parseNumber(self.currNum)
+        if not works:
+            self.errorMessage = message
+            return False
+        self.errorMessage = ''
+        value = message
+
+        # in case the selected cell is no the draft cell
+        if not self.isDraftRow(self.editRow, data):
+            point = data.points[self.editRow]
+            if self.editCol == 0:
+                data.editPoint(self.editRow, value, point.y)
+            else:
+                data.editPoint(self.editRow, point.x, value)
+            return True
+
+        # the draft row
+        # it will hold the value until the row is fully edited
+        # holds value only if the value is valid
+        if self.editCol == 0:
+            self.draftX = self.currNum
+        else:
+            self.draftY = self.currNum
+        if self.draftX != '' and self.draftY != '':
+            okX, xValue = dataset.parseNumber(self.draftX)
+            okY, yValue = dataset.parseNumber(self.draftY)
+            if okX and okY:
+                data.addPoint(xValue, yValue)
+                self.draftX, self.draftY = '', ''
+        return True
+
+    # x -> y -> next row's x
+    def advance(self, data):
+        row, col = self.editRow, self.editCol
+        if col == 0:
+            self.startEdit(row, 1, data)
+        else:
+            self.startEdit(min(row + 1, len(data.points)), 0, data)
+
+
+    # Returns True when the table used the key, so main.py knows not to treat
+    # it as a global shortcut.
+    def handleKey(self, key, data):
+        if not self.isEditing():
+            return False
+        if key == 'escape':
+            self.cancelEdit()
+        elif key == 'backspace':
+            self.currNum = self.currNum[:-1]
+            self.errorMessage = ''
+        elif key in ('enter', 'return', ','):
+            if self.commitCell(data):
+                self.advance(data)
+        elif key == 'tab':
+            if self.commitCell(data):
+                self.advance(data)
+        elif key == 'space':
+            pass
+        elif len(key) == 1:
+            # anything printable is accepted so that parseNumber can give a
+            # real message about it rather than the key silently doing nothing
+            self.currNum += key
+            self.errorMessage = ''
+        else:
+            return False
+        return True
+
+    # Returns an action string for main.py, or None. The table performs its
+    # own edits but never deletes or excludes on its own.
+    def handleClick(self, mouseX, mouseY, data):
+        hit = self.cellAt(mouseX, mouseY, data)
+        if hit is None:
+            if self.isEditing():
+                self.commitCell(data)
+                self.cancelEdit()
+            return None
+        row, col = hit
+        if col in (0, 1):
+            if self.isEditing():
+                self.commitCell(data)
+            self.startEdit(row, col, data)
+            return None
+        if self.isDraftRow(row, data):
+            return None
+        if self.isEditing():
+            self.commitCell(data)
+            self.cancelEdit()
+        return (col, row)
+
+
+    def draw(self, data):
+        self.drawHeader()
+        firstRow = self.scrollTop
+        for screenIndex in range(self.visibleRowCount()):
+            row = firstRow + screenIndex
+            if row >= self.totalRowCount(data):
+                break
+            self.drawRow(row, screenIndex, data)
+        self.drawFooter(data)
+
+    def drawHeader(self):
+        top = self.panel.contentTop()
+        drawLabel('#', self.markLeft + DataTable.markWidth / 2,
+                  top + DataTable.headerHeight / 2, size=10, fill=mutedColor)
+        drawLabel('x', self.xLeft + self.valueWidth / 2,
+                  top + DataTable.headerHeight / 2, size=10, bold=True)
+        drawLabel('y', self.yLeft + self.valueWidth / 2,
+                  top + DataTable.headerHeight / 2, size=10, bold=True)
+        drawLine(self.markLeft, self.rowsTop,
+                 self.deleteLeft + DataTable.deleteWidth, self.rowsTop,
+                 fill=panelBorder)
+
+    def drawRow(self, row, screenIndex, data):
+        top = self.rowTop(screenIndex)
+        isDraft = self.isDraftRow(row, data)
+        excluded = (not isDraft) and data.points[row].isExcluded
+
+        if self.isEditing() and self.editRow == row:
+            drawRect(self.markLeft, top,
+                     self.deleteLeft + DataTable.deleteWidth - self.markLeft,
+                     DataTable.rowHeight, fill=selectFill)
+
+        # the row number doubles as the exclude toggle
+        if isDraft:
+            drawLabel('+', self.markLeft + DataTable.markWidth / 2,
+                      top + DataTable.rowHeight / 2, size=11, fill=mutedColor)
+        else:
+            drawLabel(str(row + 1), self.markLeft + DataTable.markWidth / 2,
+                      top + DataTable.rowHeight / 2, size=10,
+                      fill=mutedColor if not excluded else errorColor)
+
+        self.drawCell(row, 0, self.xLeft, top, data, isDraft, excluded)
+        self.drawCell(row, 1, self.yLeft, top, data, isDraft, excluded)
+
+        if not isDraft:
+            drawLabel('x', self.deleteLeft + DataTable.deleteWidth / 2,
+                      top + DataTable.rowHeight / 2, size=10, fill=mutedColor)
+
+    def drawCell(self, row, col, left, top, data, isDraft, excluded):
+        editing = self.isEditing() and self.editRow == row and self.editCol == col
+        if editing:
+            drawRect(left, top, self.valueWidth, DataTable.rowHeight,
+                     fill=editFill, border=panelBorder)
+            text = self.currNum + '|'
+            fill = textColor
+        else:
+            text = self.currentText(row, col, data)
+            if text == '':
+                text = '-' if isDraft else ''
+            fill = mutedColor if (isDraft or excluded) else textColor
+        drawLabel(text, left + 5, top + DataTable.rowHeight / 2,
+                  size=11, align='left', fill=fill)
+
+    def drawFooter(self, data):
+        top = self.panel.bottom - DataTable.footerHeight
+        drawLine(self.markLeft, top, self.deleteLeft + DataTable.deleteWidth,
+                 top, fill=panelBorder)
+        if self.errorMessage != '':
+            drawLabel(self.errorMessage, self.markLeft, top + 11,
+                      size=10, align='left', fill=errorColor)
+            drawLabel('Esc cancels', self.markLeft, top + 23,
+                      size=9, align='left', fill=mutedColor)
+        elif self.isEditing():
+            drawLabel('comma or enter = next cell', self.markLeft, top + 11,
+                      size=9, align='left', fill=mutedColor)
+            drawLabel('esc cancels, click x deletes', self.markLeft, top + 23,
+                      size=9, align='left', fill=mutedColor)
+        else:
+            active = data.getActiveCount()
+            drawLabel(f'{len(data.points)} rows, {active} active',
+                      self.markLeft, top + 11, size=10, align='left',
+                      fill=mutedColor)
+            drawLabel('click a cell to edit, # to exclude', self.markLeft,
+                      top + 23, size=9, align='left', fill=mutedColor)
