@@ -5,6 +5,7 @@ import math
 borderColor = 'black'
 axisColor = 'black'
 pointColor = 'black'
+gridColor = 'gray'
 excludedColor = 'gray'
 curveColors = ['blue', 'red', 'green', 'purple', 'green', 'brown', 'black']
 extraCurveColor = 'gray'
@@ -29,7 +30,7 @@ def tickValues(low, high, targetCount):
     for tickIndex in range(firstIndex, lastIndex+1):
         value = tickIndex * step
         values.append(value)
-    return value
+    return values
 
 ########################################################################
 # written by Claude Opus 5 / Jul 29, 2026
@@ -55,7 +56,10 @@ def padRange(low, high):
     return (low - margin, high + margin)
 
 class GraphView:
+    pixelsPerXTick = 50
+    pixelsPerYTick = 50
     pointRadius = 4
+    curveWidth = 2
 
     def __init__(self, left, top, width, height):
         self.left, self.top = left, top
@@ -88,7 +92,7 @@ class GraphView:
     # convert coordinate
     def toScreenX(self, x):
         ratio = (x - self.xMin) / (self.xMax - self.xMin)
-        return self.left + ratio * self.height
+        return self.left + ratio * self.width
 
     def toScreenY(self, y):
         ratio = (y - self.yMin) / (self.yMax - self.yMin)
@@ -103,6 +107,7 @@ class GraphView:
 
     def toDataY(self, pixelY):
         ratio = (self.bottom - pixelY) / self.height
+        return self.yMin + ratio * (self.yMax - self.yMin)
 
     def screenToData(self, pixelX, pixelY):
         return (self.toDataX(pixelX), self.toDataY(pixelY))
@@ -114,7 +119,7 @@ class GraphView:
     # draw
     def drawBackground(self):
         drawRect(self.left,self.top,self.width,self.height, 
-                 fill='white', border=borderColor)
+                 fill='white')
 
     def drawPoints(self, data):
         for point in data.points:
@@ -179,11 +184,39 @@ class GraphView:
 
     def drawCurves(self, analysisEngine):
         visible = []
-        for result in analysisEngine.result:
+        for result in analysisEngine.results:
             if result.isVisible:
                 visible.append(result)
         for i in range(len(visible)-1, -1, -1):
             self.drawCurve(analysisEngine, visible[i], self.colorFor(visible[i]))
+
+    def drawGridAndTicks(self):
+        xStep = niceStep((self.xMax - self.xMin) /
+                         max(1, self.width // GraphView.pixelsPerXTick))
+        yStep = niceStep((self.yMax - self.yMin) /
+                         max(1, self.height // GraphView.pixelsPerYTick))
+ 
+        for x in tickValues(self.xMin, self.xMax, self.width // GraphView.pixelsPerXTick):
+            pixelX = self.toScreenX(x)
+            drawLine(pixelX, self.top, pixelX, self.bottom, fill=gridColor, opacity=20)
+            drawLabel(formatTick(x, xStep), pixelX, self.bottom + 12, size=10)
+ 
+        for y in tickValues(self.yMin, self.yMax, self.height // GraphView.pixelsPerYTick):
+            pixelY = self.toScreenY(y)
+            drawLine(self.left, pixelY, self.right, pixelY, fill=gridColor, opacity=20)
+            drawLabel(formatTick(y, yStep), self.left - 6, pixelY, size=10, align='right')
+
+    def drawAxisLines(self):
+        if self.xMin <= 0 <= self.xMax:
+            pixelX = self.toScreenX(0)
+            drawLine(pixelX, self.top, pixelX, self.bottom, fill=axisColor)
+        if self.yMin <= 0 <= self.yMax:
+            pixelY = self.toScreenY(0)
+            drawLine(self.left, pixelY, self.right, pixelY, fill=axisColor)
+
+    def drawBorder(self):
+        drawRect(self.left, self.top, self.width, self.height,
+                 fill=None, border=borderColor)
 
     def drawEmptyMessage(self):
         drawLabel('Add at least 2 points to see a fit.',
