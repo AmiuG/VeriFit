@@ -189,3 +189,14 @@ class GraphView:
         drawLabel('Add at least 2 points to see a fit.',
                   self.left + self.width / 2, self.top + self.height / 2,
                   size=14, fill=excludedColor)
+
+    def draw(self, data, analysisEngine = None):
+        self.drawBackground()
+        self.drawGridAndTicks()
+        self.drawAxisLines()
+        if analysisEngine is not None and len(analysisEngine.results) > 0:
+            self.drawCurves(analysisEngine)
+        self.drawPoints(data)
+        self.drawBorder()
+        if data.getActiveCount() < 2:
+            self.drawEmptyMessage()
