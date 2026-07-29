@@ -9,6 +9,15 @@ excludedColor = 'gray'
 curveColors = ['blue', 'red', 'green', 'purple', 'green', 'brown', 'black']
 extraCurveColor = 'gray'
 
+def padRange(low, high):
+    if low == high:
+        # one point, or a column of identical values, has no width to pad.
+        # invent a window so the point lands in the middle instead of on an edge.
+        size = abs(low) * 0.1 if low != 0 else 1
+        return (low - size, high + size)
+    margin = (high - low) * 0.08
+    return (low - margin, high + margin)
+
 class GraphView:
     pointRadius = 4
 
@@ -18,7 +27,27 @@ class GraphView:
         self.right, self.bottom = left + width, top + height
 
         self.xMin, self.xMax = 0, 10
-        self.yMin, self.yMin = 0, 10
+        self.yMin, self.yMax = 0, 10
+
+    def setWindow(self, xMin, xMax, yMin, yMax):
+        # a zero-width window would divide by zero in every conversion below
+        if xMax <= xMin:
+            xMin, xMax = padRange(xMin, xMin)
+        if yMax <= yMin:
+            yMin, yMax = padRange(yMin, yMin)
+        self.xMin, self.xMax = xMin, xMax
+        self.yMin, self.yMax = yMin, yMax
+ 
+    # frames the window around the dataset. Always uses the raw x-values,
+    # because the user's coordinates are the only ones that go on screen.
+    def fitToDataset(self, data):
+        xRange, yRange = data.getRawXRange(), data.getYRange()
+        if xRange is None or yRange is None:
+            self.setWindow(0, 10, 0, 10)
+            return
+        xLow, xHigh = padRange(xRange[0], xRange[1])
+        yLow, yHigh = padRange(yRange[0], yRange[1])
+        self.setWindow(xLow, xHigh, yLow, yHigh)
 
     # convert coordinate
     def toScreenX(self, x):
