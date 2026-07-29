@@ -19,6 +19,32 @@ def niceStep(roughStep):
             return multiple * base
     return 10 * base
 
+def tickValues(low, high, targetCount):
+    if high <= low or targetCount < 1:
+        return []
+    step = niceStep((high-low) / targetCount)
+    firstIndex = math.ceil(low / step)
+    lastIndex = math.floor(high / step)
+    values = []
+    for tickIndex in range(firstIndex, lastIndex+1):
+        value = tickIndex * step
+        values.append(value)
+    return value
+
+########################################################################
+# written by Claude Opus 5 / Jul 29, 2026
+########################################################################
+def formatTick(value, step):
+    decimals = 0
+    if step < 1:
+        decimals = int(math.ceil(-math.log10(step)))
+    text = f'{value:.{decimals}f}'
+    # '-0' happens when a tiny negative rounds to zero
+    if text.startswith('-') and float(text) == 0:
+        text = text[1:]
+    return text
+########################################################################
+
 def padRange(low, high):
     if low == high:
         # one point, or a column of identical values, has no width to pad.
