@@ -367,3 +367,18 @@ class DataTable:
                       fill=mutedColor)
             drawLabel('click a cell to edit, # to exclude', self.markLeft,
                       top + 23, size=9, align='left', fill=mutedColor)
+
+def wrapText(text, maxChars):
+    words = text.split(' ')
+    lines, current = [], ''
+    for word in words:
+        candidate = word if current == '' else current + ' ' + word
+        if len(candidate) <= maxChars:
+            current = candidate
+        else:
+            if current != '':
+                lines.append(current)
+            current = word
+    if current != '':
+        lines.append(current)
+    return lines
