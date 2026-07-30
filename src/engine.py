@@ -20,6 +20,8 @@ class FitResults:
         self.standardErrors = None
         self.interpretations = []
 
+        self.outlierIndex = None
+
         self.offset = 0
         # in case the user turns off viewing a model in graph
         self.isVisible = False
@@ -90,6 +92,13 @@ class AnalysisEngine:
             if not model.fit(x_coords, y_coords):
                 self.unavailable.append((model.name, 'Could not be fitted'))
                 continue
+            # a model can "fit" and still be useless: on year data the power
+            # model's ln(a) underflows to a = 0.0 with b = 468, so fit()
+            # returns True and every prediction then overflows to None
+            if stats.getResiduals(model, x_coords, y_coords) is None:
+                self.unavailable.append((model.name, 'Fit was not numerically usable'))
+                model.reset()
+                continue
             fittedModels.append(model)
 
         # score each fitted models
@@ -114,6 +123,8 @@ class AnalysisEngine:
         result.residuals = stats.getResiduals(model, x_coords, y_coords)
         result.r2 = stats.rSquared(model, x_coords, y_coords)
         result.trainRmse = stats.rmse(result.residuals)
+        result.interpretations = stats.describeResiduals(x_coords, y_coords, result.residuals)
+        result.outlierIndex = stats.outlierIndex(result.residuals)
         # cvRMSE and AICc will be left blank on an adjusted model
         if model.isAdjusted:
             return result
