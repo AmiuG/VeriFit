@@ -233,3 +233,13 @@ class GraphView:
         self.drawBorder()
         if data.getActiveCount() < 2:
             self.drawEmptyMessage()
+
+
+class ResidualPlot:
+    def __init__(self, left, top, width, height):
+        self.left, self.top = left, top
+        self.width, self.height = width, height
+        self.right, self.bottom = left+width, top+height
+        self.middle = top + height/2
+
+    
