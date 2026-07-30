@@ -290,3 +290,31 @@ def spreadWarning(x_coords, residuals):
     return (f'The misses are about {ratio:.0f} times bigger at {where}.'
             f'Predictions there are much less trustworthy than the single'
             f'error number suggests.')
+
+# search for the most extreme residual. The threshold for being "extreme"
+# is being 5 times the median absolute redisual
+def outlierIndex(residuals, threshold = 5):
+    if residuals is None or len(residuals) < 5:
+        return None
+    sizes = []
+    for residual in residuals:
+        sizes.append(abs(residual))
+    typical = median(sizes)
+    if typical is None or typical <= 0:
+        return None
+    worstSize = max(sizes)
+    worstRatio = worstSize / typical
+    if worstRatio < threshold:
+        return None
+    return sizes.index(worstSize)
+
+def outlierWarning(residuals):
+    index = outlierIndex(residuals)
+    if index is None:
+        return str()
+    sizes = []
+    for residual in residuals:
+        sizes.append(abs(residual))
+    ratio = sizes[index]/median(sizes)
+    return (f'One point misses by about {ratio:.0f} times the usual amount.'
+            f'Try excluding it to see whether the ranking depends on it.')
