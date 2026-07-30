@@ -199,3 +199,49 @@ def residualsInXOrder(x_coords, residuals):
     for x, residual in pairs:
         ordered.append(residual)
     return ordered
+
+# run is a series of residuals sharing a sign
+# heavily clustered residuals will have less runs
+def countSignRuns(values):
+    runs, lastSign = 0, 0
+    for value in values:
+        if value < 0:
+            sign = -1
+        elif value > 0:
+            sign = +1
+        else:
+            continue
+        if sign != lastSign:
+            runs += 1
+            lastSign = sign
+    return runs
+
+# THe Wald-Wolfowitz Runs Test
+# based on null hypothesis that the positive and negative signs
+# will ideally occur in random order if the model is accurate fit
+def runsTest(values):
+    positives, negatives = 0, 0
+    for value in values:
+        if value < 0:
+            negatives += 1
+        elif value > 0:
+            positives += 1
+        else:
+            continue
+    n = positives + negatives
+    # the result will be unreliable if there are too less data
+    if positives < 2 or negatives < 2 or n < 8:
+        return None
+    runs = countSignRuns(values)
+    expected = (2*positives*negatives)/n + 1
+    varTop = 2*positives*negatives * (2 * positives * negatives - n)
+    varBottom = n * n * (n - 1)
+    if varBottom <= 0:
+        return None
+    variance = varTop/varBottom
+    if variance <= 0:
+        return None
+    stdDevR = variance**0.5
+
+    zScore = (runs-expected)/stdDevR
+    return zScore
