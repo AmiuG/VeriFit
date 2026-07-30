@@ -1,4 +1,5 @@
 import math
+import linalg
 
 #######################################################################
 # written by Claude Opus 4.8 / Jul 25, 2026 
@@ -24,6 +25,8 @@ def isFinite(value):
         return False                         # not equal to itself
     if value == float('inf') or value == float('-inf'):
         return False
+    if abs(value) > 10 ** 150:
+        return False
     return True
 #######################################################################
 
@@ -43,6 +46,8 @@ def getResiduals(model, x_coords, y_coords):
 def sumOfSquares(values):
     total = 0
     for value in values:
+        if abs(value) > 10 ** 150:
+            return float('inf')
         total += value**2
     return total
 
@@ -50,7 +55,10 @@ def sumOfSquares(values):
 def rmse(residuals):
     if residuals == None or len(residuals) == 0:
         return None
-    return math.sqrt(sumOfSquares(residuals) / len(residuals))
+    total = sumOfSquares(residuals)
+    if total == float('inf'):
+        return None
+    return math.sqrt(total / len(residuals))
 
 # calculate the model's RMSE on the training data
 def trainingRmse(model, x_coords, y_coords):
@@ -65,14 +73,14 @@ def rSquared(model, x_coords, y_coords):
     if residuals == None or len(y_coords) == 0:
         return None
     meanY = sum(y_coords) / len(y_coords)
-    totalSquares = 0
-    for y in y_coords:
-        totalSquares = totalSquares + (y - meanY) ** 2
     # if totalSquares is 0, every y is identical, so R^2 is not defined
-    if totalSquares == 0:
+    totalSquares = sumOfSquares([y - meanY for y in y_coords])
+    residualSquares = sumOfSquares(residuals)
+    if totalSquares == 0 or totalSquares == float('inf'):
         return None
-    return 1 - sumOfSquares(residuals) / totalSquares
-
+    if residualSquares == float('inf'):
+        return None
+    return 1 - residualSquares / totalSquares
 
 def chooseFoldCount(n):
     # for small data sets, each data points will be hidden and tested
@@ -289,7 +297,7 @@ def spreadWarning(x_coords, residuals):
         where = 'larger x'
     else:
         where = 'smaller x'
-    return (f'The misses are about {ratio:.0f} times bigger at {where}.'
+    return (f'The misses are about {ratio:.0f} times bigger at {where}. '
             f'Predictions there are much less trustworthy than the single'
             f'error number suggests.')
 
@@ -337,3 +345,42 @@ def describeResiduals(x_coords, y_coords, residuals):
         if warning != str():
             warnings.append(warning)
     return warnings
+
+def standardErrors(model, x_coords, y_coords):
+    if not model.isFitted:
+        return None
+    A = model.designMatrix(x_coords)
+    fitResiduals = model.fitSpaceResiduals(x_coords, y_coords)
+    if A is None or fitResiduals is None or len(A) == 0:
+        return None
+    n, p = len(A), len(A[0])
+    # with no spare points there is nothing left to estimate the noise from
+    if n - p <= 0:
+        return None
+    squaredError = sumOfSquares(fitResiduals)
+    if squaredError == float('inf'):
+        return None
+    sigmaSquared = squaredError / (n - p)
+
+    AtA = linalg.multiplyMatrices(linalg.transpose(A), A)
+    inverse = linalg.invert(AtA)
+    if inverse is None:
+        return None
+
+    errors = []
+    for j in range(p):
+        variance = sigmaSquared * inverse[j][j]
+        # a negative diagonal can only come from rounding on a near-singular
+        # matrix, and there is no honest error to report in that case
+        if variance < 0:
+            return None
+        errors.append(math.sqrt(variance))
+    return errors
+
+def parameterBounds(model, x_coords, y_coords, spread = 2):
+    errors = standardErrors(model, x_coords, y_coords)
+    if errors is None or model.params is None:
+        return None
+    if len(errors) != len(model.params):
+        return None
+    return model.boundsFromErrors(errors, spread)
