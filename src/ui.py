@@ -400,3 +400,144 @@ class ModelCards:
         self.expandedIndex = 0
         self.left = panel.left + 10
         self.width = panel.width - 20
+
+    def expandedHeight(self, result):
+        height = 6
+        height += ModelCards.lineHeight * len(
+            wrapText(result.getEquation(), ModelCards.wrapWidth))
+        height += ModelCards.lineHeight * 2 + 2
+        if result.isAdjusted():
+            height += ModelCards.lineHeight
+        for warning in result.interpretations:
+            height += 10 * len(wrapText(warning, ModelCards.wrapWidth)) + 4
+        return height + 6
+
+    # (index, top, totalHeight) for every result
+    def rowLayout(self, analysisEngine):
+        layout = []
+        top = self.panel.contentTop() + 6
+        for i in range(len(analysisEngine.results)):
+            height = ModelCards.rowHeight
+            if i == self.expandedIndex:
+                height += self.expandedHeight(analysisEngine.results[i])
+            layout.append((i, top, height))
+            top += height
+        return layout
+
+    def selectedResult(self, analysisEngine):
+        if self.expandedIndex is None:
+            return None
+        if 0 <= self.expandedIndex < len(analysisEngine.results):
+            return analysisEngine.results[self.expandedIndex]
+        return None
+
+    # ---------- input ----------
+
+    # ('toggle', index) when the swatch was hit, ('select', index) for the
+    # row itself, or None
+    def handleClick(self, mouseX, mouseY, analysisEngine):
+        if not (self.left - 4 <= mouseX <= self.left + self.width + 4):
+            return None
+        for index, top, height in self.rowLayout(analysisEngine):
+            if top <= mouseY < top + ModelCards.rowHeight:
+                if mouseX < self.left + 14:
+                    return ('toggle', index)
+                return ('select', index)
+        return None
+
+    # ---------- drawing ----------
+
+    def draw(self, analysisEngine, colorForResult, tieMessage = ''):
+        if len(analysisEngine.results) == 0:
+            drawLabel('No model fitted yet.', self.left,
+                      self.panel.contentTop() + 16, size=11, align='left',
+                      fill=mutedColor)
+            drawLabel('Add at least 2 points.', self.left,
+                      self.panel.contentTop() + 32, size=11, align='left',
+                      fill=mutedColor)
+            return
+
+        bottom = self.panel.bottom - 8
+        for index, top, height in self.rowLayout(analysisEngine):
+            if top > bottom:
+                break
+            result = analysisEngine.results[index]
+            self.drawRow(result, index, top, colorForResult(result))
+            if index == self.expandedIndex:
+                self.drawDetail(result, top + ModelCards.rowHeight)
+
+        self.drawFooter(analysisEngine, tieMessage)
+
+    def drawRow(self, result, index, top, color):
+        middle = top + ModelCards.rowHeight / 2
+        if index == self.expandedIndex:
+            drawRect(self.left - 4, top, self.width + 8,
+                     ModelCards.rowHeight, fill=selectFill)
+
+        # a filled swatch means the curve is on the graph, hollow means off
+        size = ModelCards.swatchSize
+        if result.isVisible:
+            drawRect(self.left, middle - size / 2, size, size, fill=color)
+        else:
+            drawRect(self.left, middle - size / 2, size, size,
+                     fill=None, border=mutedColor)
+
+        drawLabel(f'{index + 1}. {result.model.name}', self.left + 16, middle,
+                  size=11, align='left', bold=(index == self.expandedIndex))
+        drawLabel(formatScore(result.cvRmse), self.left + self.width, middle,
+                  size=11, align='right', fill=mutedColor)
+
+    def drawDetail(self, result, top):
+        y = top + 8
+        for line in wrapText(result.getEquation(), ModelCards.wrapWidth):
+            drawLabel(line, self.left + 16, y, size=10, align='left')
+            y += ModelCards.lineHeight
+
+        drawLabel(f'training RMSE {formatScore(result.trainRmse)}     '
+                  f'R2 {formatScore(result.r2)}',
+                  self.left + 16, y, size=9, align='left', fill=mutedColor)
+        y += ModelCards.lineHeight
+
+        # an akaike weight is a share of support, so a bar reads faster
+        # than the number on its own
+        if result.akaikeWeight is None:
+            drawLabel('AICc n/a: too few points for this many parameters',
+                      self.left + 16, y, size=9, align='left', fill=mutedColor)
+        else:
+            barWidth = 84
+            drawRect(self.left + 16, y - 4, barWidth, 8, fill=titleFill)
+            drawRect(self.left + 16, y - 4, barWidth * result.akaikeWeight, 8,
+                     fill=mutedColor)
+            drawLabel(f'{result.akaikeWeight * 100:.0f}% of AICc support',
+                      self.left + 16 + barWidth + 8, y, size=9, align='left',
+                      fill=mutedColor)
+        y += ModelCards.lineHeight + 2
+
+        if result.isAdjusted():
+            drawLabel('adjusted by hand: CV and AICc no longer apply',
+                      self.left + 16, y, size=9, align='left', fill=errorColor)
+            y += ModelCards.lineHeight
+
+        for warning in result.interpretations:
+            for line in wrapText(warning, ModelCards.wrapWidth):
+                drawLabel(line, self.left + 16, y, size=9, align='left',
+                          fill=errorColor)
+                y += 10
+            y += 4
+
+    def drawFooter(self, analysisEngine, tieMessage):
+        y = self.panel.bottom - 12
+        for name, reason in analysisEngine.unavailable:
+            drawLabel(f'{name}: {reason}'[:48], self.left, y, size=9,
+                      align='left', fill=mutedColor)
+            y -= 11
+        if len(analysisEngine.unavailable) > 0:
+            drawLabel('not fitted', self.left, y, size=9, align='left',
+                      bold=True, fill=mutedColor)
+            y -= 14
+        if tieMessage != '':
+            for line in reversed(wrapText(tieMessage, ModelCards.wrapWidth)):
+                drawLabel(line, self.left, y, size=9, align='left')
+                y -= 10
+            drawLabel('too close to call', self.left, y, size=9,
+                      align='left', bold=True)
