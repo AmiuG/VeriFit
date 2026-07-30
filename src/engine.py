@@ -22,6 +22,11 @@ class FitResults:
 
         self.outlierIndex = None
 
+        # the parameters the fit actually produced are kept so the graph can
+        # still show the original curve after a slider has moved things
+        self.originalParams = None
+        self.parameterBounds = None
+
         self.offset = 0
         # in case the user turns off viewing a model in graph
         self.isVisible = False
@@ -66,6 +71,38 @@ class AnalysisEngine:
         if model.usesShiftedX:
             return self.dataset.xOffset
         return 0
+
+    # After a slider has hand-edited the parameters, CV RMSE and AICc
+    # because nothing is fitted it's simply adjusted
+    def rescoreAdjusted(self, result):
+        y_coords = self.dataset.getRawYs()
+        x_coords = self.x_coordsFor(result.model)
+        result.residuals = stats.getResiduals(result.model, x_coords, y_coords)
+        result.trainRmse = stats.rmse(result.residuals)
+        result.r2 = stats.rSquared(result.model, x_coords, y_coords)
+        result.interpretations = stats.describeResiduals(x_coords, y_coords,
+                                                         result.residuals)
+        result.outlierIndex = stats.outlierIndex(result.residuals)
+        result.cvRmse = None
+        result.aicc = None
+        result.akaikeWeight = None
+
+    # rebuilds the model exactly as it came out of the fit, so the view can
+    # draw the untouched curve behind a hand-adjusted one
+    def originalModelFor(self, result):
+        if result.originalParams is None:
+            return None
+        ghost = result.model.makeBlankCopy()
+        ghost.isFitted = True
+        ghost.params = list(result.originalParams)
+        ghost.applyParams()
+        return ghost
+
+    # predict with any model, doing the same coordinate conversion predictAt does
+    def predictWith(self, model, usesShiftedX, x):
+        if usesShiftedX:
+            x = self.dataset.toFitX(x)
+        return stats.safePredict(model, x)
 
     def predictAt(self, result, x):
         if result.model.usesShiftedX:
@@ -125,6 +162,10 @@ class AnalysisEngine:
         result.trainRmse = stats.rmse(result.residuals)
         result.interpretations = stats.describeResiduals(x_coords, y_coords, result.residuals)
         result.outlierIndex = stats.outlierIndex(result.residuals)
+        if model.params is not None:
+            result.originalParams = list(model.params)
+        result.standardErrors = stats.standardErrors(model, x_coords, y_coords)
+        result.parameterBounds = stats.parameterBounds(model, x_coords, y_coords)
         # cvRMSE and AICc will be left blank on an adjusted model
         if model.isAdjusted:
             return result
