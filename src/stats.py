@@ -280,8 +280,10 @@ def spreadWarning(x_coords, residuals):
     if firstHalf is None or secondHalf is None:
         return str()
     smaller, larger = min(firstHalf, secondHalf), max(firstHalf, secondHalf)
+    if smaller <= 0:
+        return str()
     ratio = larger / smaller
-    if smaller <= 0 or ratio < 3:
+    if ratio < 3:
         return str()
     if secondHalf > firstHalf:
         where = 'larger x'
@@ -333,5 +335,5 @@ def describeResiduals(x_coords, y_coords, residuals):
                     spreadWarning(x_coords, residuals),
                     outlierWarning(residuals)]:
         if warning != str():
-            warning.append(warning)
+            warnings.append(warning)
     return warnings

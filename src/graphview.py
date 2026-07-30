@@ -240,6 +240,8 @@ class GraphView:
 
 
 class ResidualPlot:
+    dotRadius = 3
+
     def __init__(self, left, top, width, height):
         self.left, self.top = left, top
         self.width, self.height = width, height
@@ -290,13 +292,13 @@ class ResidualPlot:
                 continue
             pixelY = self.toScreenY(residuals[i], halfRange)
             isOutlier = (outlierIndex is not None and i == outlierIndex)
-            drawLine(pixelX,self.middle,pixelX,pixelY)
-            drawCircle(pixelX, pixelY, ResidualPlot.dotRadius, 
-                       fill=outlierColor if isOutlier else residualDotColor)
+        drawLine(pixelX,self.middle,pixelX,pixelY, fill=residualStemColor)
+        drawCircle(pixelX, pixelY, ResidualPlot.dotRadius, 
+                    fill=outlierColor if isOutlier else residualDotColor)
 
-            drawLabel(f'residuals: {result.model.name}',self.left+4,self.top+9, size=9,
-                      align='left', fill=excludedColor)
-            drawLabel(f'+{formatTick(halfRange, halfRange/4)}',self.left-6,self.top+8, size=9,
-                      align='right', fill=excludedColor)
-            drawLabel('0',self.left-6,self.middle, size=9, align='right', fill=excludedColor)
-            drawRect(self.left,self.top,self.width,self.height, fill=None, border=borderColor)
+        drawLabel(f'residuals: {result.model.name}',self.left+4,self.top+9, size=9,
+                    align='left', fill=excludedColor)
+        drawLabel(f'+{formatTick(halfRange, halfRange/4)}',self.left-6,self.top+8, size=9,
+                    align='right', fill=excludedColor)
+        drawLabel('0',self.left-6,self.middle, size=9, align='right', fill=excludedColor)
+        drawRect(self.left,self.top,self.width,self.height, fill=None, border=borderColor)
