@@ -262,7 +262,31 @@ def curvatureWarning(x_coords, residuals):
         # too small for the test, so fall back on the blunt ver
         tooFew = runs <= 2
     if not tooFew:
-        return '' 
+        return str()
     return(f'The points sit above the curve in one stretch and below it in'
            f'another ({runs}runs). The data bends in a way this model'
            f'cannot follow.')
+
+# compares the typical miss in the first half on x against the second half
+# median will serve as the half
+def spreadWarning(x_coords, residuals):
+    ordered = residualsInXOrder(x_coords, residuals)
+    n = len(ordered)
+    if n < 8:
+        return str()
+    half = n//2
+    firstHalf = median([abs(value) for value in ordered[:half]])
+    secondHalf = median([abs(value) for value in ordered[n-half:]])
+    if firstHalf is None or secondHalf is None:
+        return str()
+    smaller, larger = min(firstHalf, secondHalf), max(firstHalf, secondHalf)
+    ratio = larger / smaller
+    if smaller <= 0 or ratio < 3:
+        return str()
+    if secondHalf > firstHalf:
+        where = 'larger x'
+    else:
+        where = 'smaller x'
+    return (f'The misses are about {ratio:.0f} times bigger at {where}.'
+            f'Predictions there are much less trustworthy than the single'
+            f'error number suggests.')
