@@ -1,5 +1,6 @@
 import math
 import linalg
+import stats
 
 # turn 3.0 into '3' and 2.71828 into '2.7183' so equations look clean
 def formatNumber(value):
@@ -68,6 +69,21 @@ class Model:
 
     def applyParams(self):
         pass
+
+    def designMatrix(self, x_coords):
+        return None
+
+    def fitSpaceResiduals(self, x_coords, y_coords):
+        return None
+
+    # turn standard errors into a (low, high) slider range per parameter.
+    # symmetric here; the two log-fitted models override it.
+    def boundsFromErrors(self, errors, spread = 2):
+        bounds = []
+        for i in range(len(self.params)):
+            middle, reach = self.params[i], spread * errors[i]
+            bounds.append((middle - reach, middle + reach))
+        return bounds
 
     # tell what state the model is currently in
     def __repr__(self):
