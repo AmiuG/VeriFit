@@ -318,3 +318,20 @@ def outlierWarning(residuals):
     ratio = sizes[index]/median(sizes)
     return (f'One point misses by about {ratio:.0f} times the usual amount.'
             f'Try excluding it to see whether the ranking depends on it.')
+
+def describeResiduals(x_coords, y_coords, residuals):
+    if residuals is None or len(residuals) == 0:
+        return list()
+    # mere tiny floating values might lead to curvature warning,
+    # so this will simply rule out such cases
+    scale = max(y_coords) - min(y_coords)
+    typical = rmse(residuals)
+    if scale > 0 and typical is not None and typical < scale * 10 ** -9:
+        return list()
+    warnings = []
+    for warning in [curvatureWarning(x_coords, residuals),
+                    spreadWarning(x_coords, residuals),
+                    outlierWarning(residuals)]:
+        if warning is not str():
+            warning.append(warning)
+    return warnings
