@@ -219,7 +219,7 @@ def countSignRuns(values):
 # THe Wald-Wolfowitz Runs Test
 # based on null hypothesis that the positive and negative signs
 # will ideally occur in random order if the model is accurate fit
-def runsTest(values):
+def runsTestScoreZ(values):
     positives, negatives = 0, 0
     for value in values:
         if value < 0:
@@ -245,3 +245,24 @@ def runsTest(values):
 
     zScore = (runs-expected)/stdDevR
     return zScore
+
+def curvatureWarning(x_coords, residuals):
+    ordered = residualsInXOrder(x_coords, residuals)
+    signed = []
+    for value in ordered:
+        if value != 0:
+            signed.append(value)
+    if len(signed) < 5:
+        return ''
+    runs = countSignRuns(ordered)
+    z = runsTestScoreZ(ordered)
+    if z is not None:
+        tooFew = z < -1.96
+    else:
+        # too small for the test, so fall back on the blunt ver
+        tooFew = runs <= 2
+    if not tooFew:
+        return '' 
+    return(f'The points sit above the curve in one stretch and below it in'
+           f'another ({runs}runs). The data bends in a way this model'
+           f'cannot follow.')
