@@ -278,6 +278,32 @@ class ExponentialModel(Model):
         self.isAdjusted = False
         return True
 
+    def designMatrix(self, x_coords):
+        # the fit solved ln|y| = ln|a| + b*x, so the matrix is [1, x]
+        return [[1, x] for x in x_coords]
+
+    def fitSpaceResiduals(self, x_coords, y_coords):
+        if not self.isFitted or self.a == 0:
+            return None
+        lnA = math.log(abs(self.a))
+        out = []
+        for i in range(len(x_coords)):
+            if y_coords[i] == 0:
+                return None
+            out.append(math.log(abs(y_coords[i])) - (lnA + self.b * x_coords[i]))
+        return out
+
+    # 'a' was estimated as ln|a|, so its interval is multiplicative rather
+    # than symmetric: a * e^(-2SE) up to a * e^(+2SE)
+    def boundsFromErrors(self, errors, spread = 2):
+        reach = spread * errors[0]
+        if self.a >= 0:
+            aBounds = (self.a * math.exp(-reach), self.a * math.exp(reach))
+        else:
+            aBounds = (self.a * math.exp(reach), self.a * math.exp(-reach))
+        bReach = spread * errors[1]
+        return [aBounds, (self.b - bReach, self.b + bReach)]
+
     def predict(self, x):
         if not self.isFitted:
             return None
