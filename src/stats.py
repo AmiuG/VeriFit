@@ -332,6 +332,6 @@ def describeResiduals(x_coords, y_coords, residuals):
     for warning in [curvatureWarning(x_coords, residuals),
                     spreadWarning(x_coords, residuals),
                     outlierWarning(residuals)]:
-        if warning is not str():
+        if warning != str():
             warning.append(warning)
     return warnings

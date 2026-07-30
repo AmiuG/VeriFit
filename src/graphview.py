@@ -257,7 +257,8 @@ class ResidualPlot:
 
     def toScreenX(self, x, xMin, xMax):
         if xMax <= xMin:
-            return self.left + (x-xMin)/(xMax-xMin)*self.width
+            return self.left
+        return self.left + (x - xMin) / (xMax - xMin) * self.width
 
     def toScreenY(self, residual, halfRange):
         pixelY = self.middle - (residual/halfRange)*(self.height/2)

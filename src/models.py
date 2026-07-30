@@ -243,7 +243,10 @@ class ExponentialModel(Model):
         # extract ln(|a|) and b values from solution
         ln_a, b_val = solution[0], solution[1]
         # assign self.a and self.b with right sign
-        abs_a = math.exp(ln_a)
+        try:
+            abs_a = math.exp(ln_a)
+        except OverflowError:
+            return False
         self.a = -abs_a if isNegative else abs_a
         self.b = b_val
         # add self.a and self.b to parameters
@@ -306,7 +309,10 @@ class PowerModel(Model):
         # extract ln(|a|) and b values from solution
         ln_a, b_val = solution[0], solution[1]
         # assign self.a and self.b
-        self.a = math.exp(ln_a)
+        try:
+            self.a = math.exp(ln_a)
+        except OverflowError:
+            return False
         self.b = b_val
         # add self.a and self.b to parameters
         self.params = [self.a, self.b]
