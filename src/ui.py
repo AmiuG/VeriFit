@@ -382,3 +382,21 @@ def wrapText(text, maxChars):
     if current != '':
         lines.append(current)
     return lines
+
+def formatScore(value, decimals = 4):
+    if value is None:
+        return 'n/a'
+    return f'{value:.{decimals}f}'
+
+class ModelCards:
+    rowHeight = 25
+    swatchSize = 9
+    lineHeight = 12
+    wrapWidth = 44
+
+    def __init__(self, panel):
+        self.panel = panel
+        # which row is open. It doubles as the selection for the residual plot.
+        self.expandedIndex = 0
+        self.left = panel.left + 10
+        self.width = panel.width - 20
