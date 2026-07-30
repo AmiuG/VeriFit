@@ -242,4 +242,11 @@ class ResidualPlot:
         self.right, self.bottom = left+width, top+height
         self.middle = top + height/2
 
-    
+    def halfRange(self, residuals):
+        biggest = 0
+        for residual in residuals:
+            if abs(residual) > biggest:
+                biggest = abs(residual)
+        if biggest <= 0:
+            return 1
+        return biggest * 1.25
