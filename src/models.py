@@ -150,8 +150,15 @@ class PolynomialModel(Model):
             self.isFitted = True
             self.isAdjusted = False
             return True
+    
+    def designMatrix(self, x_coords):
+        return [[x ** power for power in self.powers] for x in x_coords]
 
+    def fitSpaceResiduals(self, x_coords, y_coords):
+        # a polynomial is fitted in ordinary units, so these are just residuals
+        return stats.getResiduals(self, x_coords, y_coords)
     # return predicted y value by the fitted model
+
     def predict(self, x):
         if not self.isFitted:
             return None
