@@ -188,3 +188,14 @@ def median(values):
         return ordered[middleIndex]
     else:
         return (ordered[middleIndex-1]+ordered[middleIndex])/2
+
+# orders residual values from lowest x value to largest x value
+def residualsInXOrder(x_coords, residuals):
+    pairs = []
+    for i in range(len(residuals)):
+        pairs.append((x_coords[i], residuals[i]))
+    pairs.sort(key = lambda pair:pair[0])
+    ordered = []
+    for x, residual in pairs:
+        ordered.append(residual)
+    return ordered
