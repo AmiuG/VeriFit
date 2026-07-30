@@ -431,9 +431,7 @@ class ModelCards:
             return analysisEngine.results[self.expandedIndex]
         return None
 
-    # ---------- input ----------
-
-    # ('toggle', index) when the swatch was hit, ('select', index) for the
+    # return ('toggle', index) when the swatch was hit, ('select', index) for the
     # row itself, or None
     def handleClick(self, mouseX, mouseY, analysisEngine):
         if not (self.left - 4 <= mouseX <= self.left + self.width + 4):
@@ -445,7 +443,9 @@ class ModelCards:
                 return ('select', index)
         return None
 
-    # ---------- drawing ----------
+    ########################################################################
+    # written by Claude Opus 5 / Jul 30, 2026
+    ########################################################################
 
     def draw(self, analysisEngine, colorForResult, tieMessage = ''):
         if len(analysisEngine.results) == 0:
@@ -541,3 +541,4 @@ class ModelCards:
                 y -= 10
             drawLabel('too close to call', self.left, y, size=9,
                       align='left', bold=True)
+    ########################################################################
