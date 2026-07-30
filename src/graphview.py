@@ -9,6 +9,10 @@ gridColor = 'gray'
 excludedColor = 'gray'
 curveColors = ['blue', 'red', 'green', 'purple', 'green', 'brown', 'black']
 extraCurveColor = 'gray'
+residualDotColor = rgb(60, 60, 60)
+residualStemColor = rgb(200, 200, 200)
+outlierColor = rgb(200, 40, 40)
+zeroLineColor = rgb(120, 120, 120)
 
 def niceStep(roughStep):
     if roughStep <= 0:
@@ -262,3 +266,36 @@ class ResidualPlot:
         if pixelY > self.bottom:
             pixelY = self.bottom
         return pixelY
+
+    def drawEmpty(self, message):
+        drawRect(self.left,self.top,self.width,self.height, fill='white',
+                 border=borderColor)
+        drawLabel(message,self.left + self.width/2,self.middle, size=10,
+                  fill=excludedColor)
+
+    def draw(self, result, x_coords, xMin, xMax, outlierIndex=None):
+        if result is None or result.residuals is None:
+            self.drawEmpty('no residuals to show')
+            return
+
+        residuals = result.residuals
+        drawRect(self.left,self.top,self.width,self.height, fill='white')
+        halfRange = self.halfRange(residuals)
+
+        drawLine(self.left,self.middle,self.right,self.middle, fill=zeroLineColor)
+        for i in range(min(len(residuals), len(x_coords))):
+            pixelX = self.toScreenX(x_coords[i], xMin, xMax)
+            if not (self.left <= pixelX <= self.right):
+                continue
+            pixelY = self.toScreenY(residuals[i], halfRange)
+            isOutlier = (outlierIndex is not None and i == outlierIndex)
+            drawLine(pixelX,self.middle,pixelX,pixelY)
+            drawCircle(pixelX, pixelY, ResidualPlot.dotRadius, 
+                       fill=outlierColor if isOutlier else residualDotColor)
+
+            drawLabel(f'residuals: {result.model.name}',self.left+4,self.top+9, size=9,
+                      align='left', fill=excludedColor)
+            drawLabel(f'+{formatTick(halfRange, halfRange/4)}',self.left-6,self.top+8, size=9,
+                      align='right', fill=excludedColor)
+            drawLabel('0',self.left-6,self.middle, size=9, align='right', fill=excludedColor)
+            drawRect(self.left,self.top,self.width,self.height, fill=None, border=borderColor)
