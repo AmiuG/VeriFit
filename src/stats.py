@@ -178,3 +178,13 @@ def akaikeWeights(aiccValues):
         else:
             weights.append(score / total)
     return weights
+
+def median(values):
+    if values is None or len(values) == 0:
+        return None
+    ordered = sorted(values)
+    middleIndex = len(ordered) // 2
+    if len(ordered) % 2 == 1:
+        return ordered[middleIndex]
+    else:
+        return (ordered[middleIndex-1]+ordered[middleIndex])/2
