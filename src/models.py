@@ -421,6 +421,13 @@ class LogarithmicModel(Model):
         self.isAdjusted = False
         return True
 
+    def designMatrix(self, x_coords):
+        # fitted directly against ln x, so the parameters are in normal units
+        return [[1, math.log(x)] for x in x_coords if x > 0]
+
+    def fitSpaceResiduals(self, x_coords, y_coords):
+        return stats.getResiduals(self, x_coords, y_coords)
+
     def predict(self, x):
         if not self.isFitted or x <= 0:
             return None
@@ -462,6 +469,13 @@ class FlatlineModel(Model):
         self.isFitted = True
         self.isAdjusted = False
         return True
+
+    def designMatrix(self, x_coords):
+        # y = c is a least squares fit against a single column of ones
+        return [[1] for x in x_coords]
+
+    def fitSpaceResiduals(self, x_coords, y_coords):
+        return stats.getResiduals(self, x_coords, y_coords)
 
     def predict(self, x):
         if not self.isFitted:
