@@ -227,6 +227,34 @@ class GraphView:
                   self.left + self.width / 2, self.top + self.height / 2,
                   size=14, fill=excludedColor)
 
+    ########################################################################
+    # written by Claude Opus 5 / Jul 30, 2026
+    ########################################################################
+    def drawGhostCurve(self, analysisEngine, result, color):
+        ghost = analysisEngine.originalModelFor(result)
+        if ghost is None:
+            return
+        previousX, previousY = None, None
+        pixelX, dashStep = self.left, 0
+        while pixelX <= self.right:
+            y = analysisEngine.predictWith(ghost, result.model.usesShiftedX,
+                                           self.toDataX(pixelX))
+            if y is None:
+                previousX, previousY = None, None
+                pixelX += 1
+                continue
+            pixelY = self.toScreenY(y)
+            # every other run of three pixels is skipped, which reads as a dash
+            if previousX is not None and dashStep % 6 < 3:
+                piece = self.clipSegment(previousX, previousY, pixelX, pixelY)
+                if piece is not None:
+                    drawLine(piece[0], piece[1], piece[2], piece[3],
+                             fill=color, lineWidth=1)
+            previousX, previousY = pixelX, pixelY
+            pixelX += 1
+            dashStep += 1
+    ########################################################################
+    
     def draw(self, data, analysisEngine = None):
         self.drawBackground()
         self.drawGridAndTicks()
