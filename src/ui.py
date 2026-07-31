@@ -16,6 +16,9 @@ tabIdleFill = rgb(236, 236, 236)
 sliderTrack = rgb(220, 220, 220)
 sliderKnob = rgb(70, 70, 70)
 warningFill = rgb(255, 244, 214)
+influenceBarColor = rgb(150, 150, 150)
+influenceAlertColor = rgb(200, 40, 40)
+slopeLineColor = rgb(190, 190, 190)
 
 
 # 3.0 -> '3', 2.5 -> '2.5', 1/3 -> '0.3333'
@@ -785,3 +788,172 @@ class SensitivityPanel:
             drawLabel('dashed line is the original fit', self.left,
                       self.top + 14 + self.usableCount(result) * SensitivityPanel.rowGap,
                       size=9, align='left', fill=errorColor)
+
+# Outlier influence. One bar per point, on the same x axis as the graph
+# above, so a tall bar sits directly under the point that caused it.
+class InfluencePanel:
+    barWidth = 7
+
+    def __init__(self, left, top, width, height):
+        self.left, self.top = left, top
+        self.width, self.height = width, height
+        self.barsTop = top + 34
+        self.barsBottom = top + height - 12
+
+    def toScreenX(self, x, xMin, xMax):
+        if xMax <= xMin:
+            return self.left
+        return self.left + (x - xMin) / (xMax - xMin) * self.width
+
+    # the tallest shift sets the scale, so the bars are always readable
+    def biggestShift(self, report):
+        biggest = 0
+        for entry in report:
+            if entry.cvShift is not None and abs(entry.cvShift) > biggest:
+                biggest = abs(entry.cvShift)
+        return biggest
+
+    def drawVerdict(self, winner, report):
+        changers = []
+        for entry in report:
+            if entry.changesWinner:
+                changers.append(entry)
+        if len(changers) == 0:
+            drawLabel(f'{winner} stays the best model no matter which single '
+                      f'point is removed.', self.left, self.top + 8, size=10,
+                      align='left')
+            drawLabel('The ranking does not depend on any one point.',
+                      self.left, self.top + 22, size=9, align='left',
+                      fill=mutedColor)
+            return
+        first = changers[0]
+        drawLabel(f'Removing row {first.row + 1} changes the best model from '
+                  f'{winner} to {first.winner}.', self.left, self.top + 8,
+                  size=10, align='left', fill=influenceAlertColor)
+        if len(changers) == 1:
+            drawLabel('The conclusion rests on that one point. Try excluding it.',
+                      self.left, self.top + 22, size=9, align='left',
+                      fill=mutedColor)
+        else:
+            rows = []
+            for entry in changers:
+                rows.append(str(entry.row + 1))
+            drawLabel(f'{len(changers)} points change the answer on their own: '
+                      f'rows {", ".join(rows)}.', self.left, self.top + 22,
+                      size=9, align='left', fill=mutedColor)
+
+    def draw(self, sweep, data, xMin, xMax):
+        if sweep is None:
+            drawLabel('Not enough points yet - the sweep needs at least four.',
+                      self.left, self.top + 20, size=10, align='left',
+                      fill=mutedColor)
+            return
+        winner, report = sweep
+        self.drawVerdict(winner, report)
+
+        drawLine(self.left, self.barsBottom, self.left + self.width,
+                 self.barsBottom, fill=panelBorder)
+        biggest = self.biggestShift(report)
+        if biggest <= 0:
+            return
+        usableHeight = self.barsBottom - self.barsTop
+        xs = data.getRawXs()
+        for entry in report:
+            if entry.activeIndex >= len(xs) or entry.cvShift is None:
+                continue
+            pixelX = self.toScreenX(xs[entry.activeIndex], xMin, xMax)
+            if not (self.left <= pixelX <= self.left + self.width):
+                continue
+            barHeight = abs(entry.cvShift) / biggest * usableHeight
+            color = influenceAlertColor if entry.changesWinner else influenceBarColor
+            drawRect(pixelX - InfluencePanel.barWidth / 2,
+                     self.barsBottom - barHeight,
+                     InfluencePanel.barWidth, barHeight, fill=color)
+            if entry.changesWinner:
+                drawLabel(str(entry.row + 1), pixelX,
+                          self.barsBottom - barHeight - 7, size=8,
+                          fill=influenceAlertColor)
+        drawLabel('how much the winner\'s error moves when each point is dropped',
+                  self.left, self.barsBottom + 7, size=8, align='left',
+                  fill=mutedColor)
+
+
+########################################################################
+# written by Claude Opus 5 / Jul 31, 2026
+########################################################################
+class RSquaredPanel:
+    def __init__(self, left, top, width, height):
+        self.left, self.top = left, top
+        self.width, self.height = width, height
+        self.leftColumn = left + 74
+        self.rightColumn = left + width - 74
+        self.rowsTop = top + 26
+
+    # models sorted best-first by whichever statistic, ignoring the ones
+    # that have no value for it
+    def rankedBy(self, results, useRSquared):
+        usable = []
+        for result in results:
+            value = result.r2 if useRSquared else result.cvRmse
+            if value is not None:
+                usable.append((value, result))
+        # a high R-squared is good, a low CV RMSE is good
+        usable.sort(key=lambda pair: -pair[0] if useRSquared else pair[0])
+        ordered = []
+        for value, result in usable:
+            ordered.append(result)
+        return ordered
+
+    def rowY(self, index, total):
+        if total <= 1:
+            return self.rowsTop + 10
+        space = self.height - 38
+        return self.rowsTop + index * (space / max(1, total - 1))
+
+    def draw(self, analysisEngine, colorForResult):
+        byR2 = self.rankedBy(analysisEngine.results, True)
+        byCv = self.rankedBy(analysisEngine.results, False)
+        if len(byR2) == 0 or len(byCv) == 0:
+            drawLabel('No scores to compare yet.', self.left, self.top + 20,
+                      size=10, align='left', fill=mutedColor)
+            return
+
+        drawLabel('ranked by R2', self.leftColumn, self.top + 10, size=9,
+                  align='right', fill=mutedColor)
+        drawLabel('ranked by CV RMSE', self.rightColumn + 6, self.top + 10,
+                  size=9, align='left', fill=mutedColor)
+
+        # join each model to itself; a crossing line is a disagreement
+        for leftIndex in range(len(byR2)):
+            result = byR2[leftIndex]
+            if result not in byCv:
+                continue
+            rightIndex = byCv.index(result)
+            y1 = self.rowY(leftIndex, len(byR2))
+            y2 = self.rowY(rightIndex, len(byCv))
+            crossed = (leftIndex != rightIndex)
+            drawLine(self.leftColumn + 4, y1, self.rightColumn - 4, y2,
+                     fill=colorForResult(result) if crossed else slopeLineColor,
+                     lineWidth=2 if crossed else 1)
+
+        for index in range(len(byR2)):
+            result = byR2[index]
+            drawLabel(f'{result.model.name} {formatScore(result.r2, 3)}',
+                      self.leftColumn, self.rowY(index, len(byR2)), size=9,
+                      align='right', fill=colorForResult(result))
+        for index in range(len(byCv)):
+            result = byCv[index]
+            drawLabel(f'{result.model.name} {formatScore(result.cvRmse, 3)}',
+                      self.rightColumn + 6, self.rowY(index, len(byCv)),
+                      size=9, align='left', fill=colorForResult(result))
+
+        if len(byR2) > 0 and len(byCv) > 0 and byR2[0] is not byCv[0]:
+            drawLabel(f'R2 prefers {byR2[0].model.name}, cross-validation '
+                      f'prefers {byCv[0].model.name}.',
+                      self.left, self.top + self.height - 6, size=9,
+                      align='left', fill=errorColor)
+        else:
+            drawLabel('Both statistics agree on the winner here.', self.left,
+                      self.top + self.height - 6, size=9, align='left',
+                      fill=mutedColor)
+########################################################################
