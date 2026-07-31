@@ -708,3 +708,80 @@ class PredictPanel:
                       self.top + 45, size=10, align='left', fill=errorColor)
             drawLabel('the models disagree most here', self.left + 218,
                       self.top + 59, size=9, align='left', fill=mutedColor)
+
+class SensitivityPanel:
+    rowGap = 22
+
+    def __init__(self, left, top, width, height):
+        self.left, self.top = left, top
+        self.width, self.height = width, height
+        self.sliders = []
+        for i in range(4):
+            self.sliders.append(Slider(left, top + 14 + i * SensitivityPanel.rowGap,
+                                       width - 90))
+        self.draggingIndex = None
+        self.resetButton = Button(left + width - 74, top + 6, 70, 20,
+                                  'Reset', 'resetParams')
+
+    def parameterName(self, result, index):
+        model = result.model
+        if hasattr(model, 'powers'):
+            power = model.powers[index]
+            if power == 0:
+                return 'constant'
+            if power == 1:
+                return 'x coefficient'
+            return f'x^{power} coefficient'
+        if model.name == 'Flatline':
+            return 'c'
+        return 'a' if index == 0 else 'b'
+
+    def usableCount(self, result):
+        if result is None or result.parameterBounds is None:
+            return 0
+        return min(len(result.parameterBounds), len(self.sliders))
+
+    # which slider a press landed on, or None
+    def sliderAt(self, mouseX, mouseY, result):
+        for i in range(self.usableCount(result)):
+            if self.sliders[i].contains(mouseX, mouseY):
+                return i
+        return None
+
+    # returns a new parameter list for the model, or None if nothing moved
+    def valueFromDrag(self, mouseX, result):
+        if self.draggingIndex is None or result is None:
+            return None
+        i = self.draggingIndex
+        if i >= self.usableCount(result):
+            return None
+        low, high = result.parameterBounds[i]
+        params = list(result.model.params)
+        params[i] = self.sliders[i].valueAt(mouseX, low, high)
+        return params
+
+    def draw(self, result):
+        if result is None:
+            drawLabel('Select a model first.', self.left, self.top + 20,
+                      size=10, align='left', fill=mutedColor)
+            return
+        if result.parameterBounds is None:
+            drawLabel('No standard errors for this model.', self.left,
+                      self.top + 20, size=10, align='left', fill=mutedColor)
+            drawLabel('It needs more points than it has parameters.',
+                      self.left, self.top + 34, size=9, align='left',
+                      fill=mutedColor)
+            return
+
+        drawLabel(f'{result.model.name}: drag within plus or minus 2 standard errors',
+                  self.left, self.top, size=9, align='left', fill=mutedColor)
+        for i in range(self.usableCount(result)):
+            low, high = result.parameterBounds[i]
+            self.sliders[i].draw(self.parameterName(result, i),
+                                 result.model.params[i], low, high,
+                                 result.isAdjusted())
+        self.resetButton.draw()
+        if result.isAdjusted():
+            drawLabel('dashed line is the original fit', self.left,
+                      self.top + 14 + self.usableCount(result) * SensitivityPanel.rowGap,
+                      size=9, align='left', fill=errorColor)
