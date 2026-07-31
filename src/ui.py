@@ -720,7 +720,7 @@ class SensitivityPanel:
         self.width, self.height = width, height
         self.sliders = []
         for i in range(4):
-            self.sliders.append(Slider(left, top + 14 + i * SensitivityPanel.rowGap,
+            self.sliders.append(Slider(left, top + 24 + i * SensitivityPanel.rowGap,
                                        width - 90))
         self.draggingIndex = None
         self.resetButton = Button(left + width - 74, top + 6, 70, 20,
@@ -765,19 +765,19 @@ class SensitivityPanel:
 
     def draw(self, result):
         if result is None:
-            drawLabel('Select a model first.', self.left, self.top + 20,
+            drawLabel('Select a model first.', self.left, self.top + 14,
                       size=10, align='left', fill=mutedColor)
             return
         if result.parameterBounds is None:
             drawLabel('No standard errors for this model.', self.left,
-                      self.top + 20, size=10, align='left', fill=mutedColor)
+                      self.top + 14, size=10, align='left', fill=mutedColor)
             drawLabel('It needs more points than it has parameters.',
-                      self.left, self.top + 34, size=9, align='left',
+                      self.left, self.top + 28, size=9, align='left',
                       fill=mutedColor)
             return
 
         drawLabel(f'{result.model.name}: drag within plus or minus 2 standard errors',
-                  self.left, self.top, size=9, align='left', fill=mutedColor)
+                  self.left, self.top+6, size=9, align='left', fill=mutedColor)
         for i in range(self.usableCount(result)):
             low, high = result.parameterBounds[i]
             self.sliders[i].draw(self.parameterName(result, i),
@@ -950,10 +950,222 @@ class RSquaredPanel:
         if len(byR2) > 0 and len(byCv) > 0 and byR2[0] is not byCv[0]:
             drawLabel(f'R2 prefers {byR2[0].model.name}, cross-validation '
                       f'prefers {byCv[0].model.name}.',
-                      self.left, self.top + self.height - 6, size=9,
+                      self.left, self.top + self.height, size=9,
                       align='left', fill=errorColor)
         else:
             drawLabel('Both statistics agree on the winner here.', self.left,
                       self.top + self.height - 6, size=9, align='left',
                       fill=mutedColor)
+            
+
+# ======================================================================
+# The graph window settings.
+#
+# A small button in the Graph panel's title bar opens a popover with the
+# window written the way it reads out loud:
+#
+#       ____ < x < ____
+#       ____ < y < ____
+#
+# The fields hold no values of their own. When idle each reads straight
+# from the GraphView, so the numbers can never drift out of step with what
+# is on screen, and they double as a readout after Reframe moves the view.
+# ======================================================================
+
+class WindowControls:
+    boxWidth = 78
+    boxHeight = 22
+    rowGap = 30
+    padding = 12
+    signWidth = 44
+
+    def __init__(self, panel):
+        self.panel = panel
+        self.isOpen = False
+        # which box is being typed into. None means none.
+        self.editIndex = None
+        self.buffer = ''
+        self.errorMessage = ''
+
+        self.width = 2 * WindowControls.padding + 2 * WindowControls.boxWidth \
+                     + WindowControls.signWidth
+        self.height = 2 * WindowControls.padding + WindowControls.boxHeight \
+                      + WindowControls.rowGap
+        self.left = panel.right - self.width - 12
+        self.top = panel.contentTop() + 6
+
+        # the opener sits in the panel's own title bar
+        self.toggleButton = Button(panel.right - 78, panel.top + 3, 68, 20,
+                                   'Window', 'toggleWindow')
+
+    # ---------- geometry ----------
+
+    # index 0 and 1 are the x row, 2 and 3 are the y row
+    def boxLeft(self, index):
+        if index % 2 == 0:
+            return self.left + WindowControls.padding
+        return (self.left + WindowControls.padding + WindowControls.boxWidth
+                + WindowControls.signWidth)
+
+    def boxTop(self, index):
+        row = index // 2
+        return self.top + WindowControls.padding + row * WindowControls.rowGap
+
+    def boxAt(self, mouseX, mouseY):
+        for index in range(4):
+            left, top = self.boxLeft(index), self.boxTop(index)
+            if (left <= mouseX <= left + WindowControls.boxWidth and
+                    top <= mouseY <= top + WindowControls.boxHeight):
+                return index
+        return None
+
+    def contains(self, mouseX, mouseY):
+        return (self.left <= mouseX <= self.left + self.width and
+                self.top <= mouseY <= self.top + self.height)
+
+    # ---------- values ----------
+
+    # the four bounds in the order the boxes appear
+    def boundsOf(self, graph):
+        return [graph.xMin, graph.xMax, graph.yMin, graph.yMax]
+
+    def currentText(self, graph, index):
+        return formatCell(self.boundsOf(graph)[index])
+
+    def startEdit(self, graph, index):
+        self.editIndex = index
+        self.buffer = self.currentText(graph, index)
+        self.errorMessage = ''
+
+    def cancelEdit(self):
+        self.editIndex = None
+        self.buffer = ''
+        self.errorMessage = ''
+
+    def close(self, graph):
+        self.commit(graph)
+        self.cancelEdit()
+        self.isOpen = False
+
+    # Applies the typed value, keeping the other three as they are. Returns
+    # True when it was accepted; on failure the text is kept so the user can
+    # correct it rather than losing what they typed.
+    def commit(self, graph):
+        if self.editIndex is None:
+            return True
+        works, result = dataset.parseNumber(self.buffer)
+        if not works:
+            self.errorMessage = result
+            return False
+        bounds = self.boundsOf(graph)
+        bounds[self.editIndex] = result
+        # setWindow would quietly widen a backwards window, which would put
+        # the user somewhere they did not ask for. Refuse and say why.
+        if bounds[1] <= bounds[0]:
+            self.errorMessage = 'x min must be below x max'
+            return False
+        if bounds[3] <= bounds[2]:
+            self.errorMessage = 'y min must be below y max'
+            return False
+        self.errorMessage = ''
+        graph.setWindow(bounds[0], bounds[1], bounds[2], bounds[3])
+        return True
+
+    # ---------- input ----------
+
+    # returns True when the click belonged to these controls
+    def handleClick(self, mouseX, mouseY, graph):
+        if self.toggleButton.contains(mouseX, mouseY):
+            if self.isOpen:
+                self.close(graph)
+            else:
+                self.isOpen = True
+            return True
+        if not self.isOpen:
+            return False
+
+        index = self.boxAt(mouseX, mouseY)
+        if index is not None:
+            if self.editIndex is not None and self.editIndex != index:
+                self.commit(graph)
+            self.startEdit(graph, index)
+            return True
+        if self.contains(mouseX, mouseY):
+            # a click on the popover background just moves focus off a box
+            self.commit(graph)
+            self.cancelEdit()
+            return True
+        # clicking away closes it, and swallows the click so that dismissing
+        # the popover never also drops a point onto the graph
+        self.close(graph)
+        return True
+
+    def handleKey(self, key, graph):
+        if not self.isOpen:
+            return False
+        if key == 'escape':
+            self.close(graph)
+        elif self.editIndex is None:
+            return False
+        elif key == 'backspace':
+            self.buffer = self.buffer[:-1]
+            self.errorMessage = ''
+        elif key in ('enter', 'return'):
+            if self.commit(graph):
+                self.cancelEdit()
+        elif key == 'tab':
+            # tab walks the four boxes, which is how you would set a whole
+            # window without touching the mouse
+            if self.commit(graph):
+                self.startEdit(graph, (self.editIndex + 1) % 4)
+        elif len(key) == 1:
+            self.buffer += key
+            self.errorMessage = ''
+        else:
+            return False
+        return True
+
+    # ---------- drawing ----------
+
+    def draw(self, graph):
+        self.toggleButton.draw(pressed=self.isOpen)
+        if not self.isOpen:
+            return
+
+        drawRect(self.left, self.top, self.width, self.height,
+                 fill=panelFill, border=panelBorder)
+        for index in range(4):
+            self.drawBox(graph, index)
+
+        # the comparison signs, centred between each pair of boxes
+        signLeft = self.left + WindowControls.padding + WindowControls.boxWidth
+        for row in range(2):
+            name = 'x' if row == 0 else 'y'
+            middle = self.boxTop(row * 2) + WindowControls.boxHeight / 2
+            drawLabel(f'< {name} <', signLeft + WindowControls.signWidth / 2,
+                      middle, size=12, bold=True)
+
+        if self.errorMessage != '':
+            drawLabel(self.errorMessage, self.left + WindowControls.padding,
+                      self.top + self.height - 4, size=9, align='left',
+                      fill=errorColor)
+        else:
+            drawLabel('tab moves on, enter applies, esc closes',
+                      self.left + WindowControls.padding,
+                      self.top + self.height - 4, size=8, align='left',
+                      fill=mutedColor)
+
+    def drawBox(self, graph, index):
+        left, top = self.boxLeft(index), self.boxTop(index)
+        editing = (index == self.editIndex)
+        drawRect(left, top, WindowControls.boxWidth, WindowControls.boxHeight,
+                 fill=editFill if editing else 'white',
+                 border=errorColor if (editing and self.errorMessage != '')
+                        else panelBorder)
+        if editing:
+            text = self.buffer + '|'
+        else:
+            text = self.currentText(graph, index)
+        drawLabel(text, left + 5, top + WindowControls.boxHeight / 2,
+                  size=11, align='left')
 ########################################################################

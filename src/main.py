@@ -81,6 +81,7 @@ def onAppStart(app):
                                          stripHeight)
 
     app.buttons = makeButtons()
+    app.windowControls = ui.WindowControls(app.graphPanel)
     app.status = 'Click a cell in the table to start entering data.'
     refit(app)
     app.graph.fitToDataset(app.data)
@@ -154,6 +155,9 @@ def doAction(app, action):
 
 
 def onMousePress(app, mouseX, mouseY):
+    if app.windowControls.handleClick(mouseX, mouseY, app.graph):
+        app.status = 'Editing the graph window.'
+        return
     for button in app.buttons:
         if button.contains(mouseX, mouseY):
             doAction(app, button.action)
@@ -261,6 +265,8 @@ def onMouseRelease(app, mouseX, mouseY):
 
 
 def onKeyPress(app, key):
+    if app.windowControls.handleKey(key, app.graph):
+        return
 
     if app.mode == 'predict' and app.predict.handleKey(key):
         return
@@ -344,6 +350,7 @@ def drawGraphPanel(app):
                                            markerColor)
         app.tabs.draw(app.mode)
         drawStrip(app)
+        app.windowControls.draw(app.graph)
     except Exception as failure:
         drawLabel('a view raised:', app.graphPanel.left + 14,
                   app.graphPanel.contentTop() + 20, size=12, bold=True,
