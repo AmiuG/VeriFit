@@ -315,14 +315,15 @@ class ExponentialModel(Model):
     def getEquation(self, offset = 0):
         if not self.isFitted:
             return ''
+        xTerm = formatXTerm(offset)
         aStr, bStr = formatNumber(self.a), formatNumber(self.b)
         if self.b == 0:
             return f'y = {aStr}'
         elif almostOne(abs(self.b)):
             sign = '-' if self.b < 0 else ''
-            return f'y = {aStr} * e^({sign}x)'
+            return f'y = {aStr} * e^({sign}{xTerm})'
         else:
-            return f'y = {aStr} * e^({bStr}x)'
+            return f'y = {aStr} * e^({bStr}{xTerm})'
 
 
 class PowerModel(Model):

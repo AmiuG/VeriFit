@@ -63,14 +63,22 @@ def onAppStart(app):
     app.tabs = ui.TabBar(stripLeft, tabTop, stripWidth,
                          [('Residuals', 'residuals'),
                           ('Predict', 'predict'),
-                          ('Sensitivity', 'sensitivity')])
+                          ('Sensitivity', 'sensitivity'),
+                          ('Influence', 'influence'),
+                          ('R2 vs CV', 'rsquared')])
     app.mode = 'residuals'
+
+    app.influence = None
 
     app.residuals = graphview.ResidualPlot(stripLeft, stripTop + 6,
                                            stripWidth, stripHeight - 12)
     app.predict = ui.PredictPanel(stripLeft, stripTop, stripWidth, stripHeight)
     app.sensitivity = ui.SensitivityPanel(stripLeft, stripTop, stripWidth,
                                           stripHeight)
+    app.influencePanel = ui.InfluencePanel(stripLeft, stripTop, stripWidth,
+                                           stripHeight)
+    app.rsquaredPanel = ui.RSquaredPanel(stripLeft, stripTop, stripWidth,
+                                         stripHeight)
 
     app.buttons = makeButtons()
     app.status = 'Click a cell in the table to start entering data.'
@@ -96,6 +104,13 @@ def makeButtons():
 # deliberately leaves the graph window alone.
 def refit(app):
     app.engine.analyze()
+
+    app.influence = None
+    if app.mode == 'influence':
+        refreshInfluence(app)
+
+def refreshInfluence(app):
+    app.influence = app.engine.influenceSweep()
 
 def selected(app):
     return app.cards.selectedResult(app.engine)
@@ -147,6 +162,8 @@ def onMousePress(app, mouseX, mouseY):
     tabKey = app.tabs.keyAt(mouseX, mouseY)
     if tabKey is not None:
         app.mode = tabKey
+        if tabKey == 'influence' and app.influence is None:
+            refreshInfluence(app)
         app.sensitivity.draggingIndex = None
         app.predict.isEditing = False
         app.status = f'Showing {tabKey}.'
@@ -275,6 +292,12 @@ def onKeyPress(app, key):
             app.cards.expandedIndex = index
             app.status = ('Showing residuals for '
                           f'{app.engine.results[index].model.name}.')
+    elif key == 'i':
+        app.mode = 'influence'
+        if app.influence is None:
+            refreshInfluence(app)
+    elif key == 'q':
+        app.mode = 'rsquared'
 
 
 def drawHeader(app):
@@ -296,8 +319,13 @@ def drawStrip(app):
                                result.outlierIndex)
     elif app.mode == 'predict':
         app.predict.draw(app.data, app.engine, result, app.graph.colorFor)
-    else:
+    elif app.mode == 'sensitivity':
         app.sensitivity.draw(result)
+    elif app.mode == 'influence':
+        app.influencePanel.draw(app.influence, app.data,
+                                app.graph.xMin, app.graph.xMax)
+    else:
+        app.rsquaredPanel.draw(app.engine, app.graph.colorFor)
 
 
 def drawGraphPanel(app):

@@ -7,7 +7,7 @@ axisColor = 'black'
 pointColor = 'black'
 gridColor = 'gray'
 excludedColor = 'gray'
-curveColors = ['blue', 'red', 'green', 'purple', 'green', 'brown', 'black']
+curveColors = ['blue', 'red', 'green', 'purple', 'orange', 'brown', 'black']
 extraCurveColor = 'gray'
 residualDotColor = rgb(60, 60, 60)
 residualStemColor = rgb(200, 200, 200)
@@ -64,6 +64,7 @@ class GraphView:
     pixelsPerYTick = 50
     pointRadius = 4
     curveWidth = 2
+    curveStep = 3
 
     def __init__(self, left, top, width, height):
         self.left, self.top = left, top
@@ -168,7 +169,7 @@ class GraphView:
                 # the model has no value here (a power model at x <= 0, or an
                 # overflow), so the line breaks rather than jumping across
                 previousX, previousY = None, None
-                pixelX += 1
+                pixelX += GraphView.curveStep
                 continue
             pixelY = self.toScreenY(y)
             if previousX is not None:
@@ -177,7 +178,7 @@ class GraphView:
                     drawLine(piece[0], piece[1], piece[2], piece[3],
                              fill=color, lineWidth=GraphView.curveWidth)
             previousX, previousY = pixelX, pixelY
-            pixelX += 1
+            pixelX += GraphView.curveStep
     ########################################################################
 
     ########################################################################
@@ -194,7 +195,7 @@ class GraphView:
                                            self.toDataX(pixelX))
             if y is None:
                 previousX, previousY = None, None
-                pixelX += 1
+                pixelX += GraphView.curveStep
                 continue
             pixelY = self.toScreenY(y)
             # every other run of three pixels is skipped, which reads as a dash
@@ -205,8 +206,8 @@ class GraphView:
                              fill=color, lineWidth=1)
             previousX, previousY = pixelX, pixelY
             pixelX += 1
-            dashStep += 1
-            
+            dashStep += GraphView.curveStep
+
     def drawPredictionMarker(self, analysisEngine, x, markerColor):
         pixelX = self.toScreenX(x)
         if not (self.left <= pixelX <= self.right):
@@ -338,8 +339,8 @@ class ResidualPlot:
                 continue
             pixelY = self.toScreenY(residuals[i], halfRange)
             isOutlier = (outlierIndex is not None and i == outlierIndex)
-        drawLine(pixelX,self.middle,pixelX,pixelY, fill=residualStemColor)
-        drawCircle(pixelX, pixelY, ResidualPlot.dotRadius, 
+            drawLine(pixelX,self.middle,pixelX,pixelY, fill=residualStemColor)
+            drawCircle(pixelX, pixelY, ResidualPlot.dotRadius, 
                     fill=outlierColor if isOutlier else residualDotColor)
 
         drawLabel(f'residuals: {result.model.name}',self.left+4,self.top+9, size=9,
