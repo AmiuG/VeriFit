@@ -43,23 +43,23 @@ Keyboard shortcuts
 
 Mouse controls
 --------------
-  Click a table cell        edit it (type, then enter to commit,
-                            tab to move to the next cell)
-  Click the draft row       add a new point by typing
-  Click x on a table row    delete that point
-  Click o on a table row    exclude/include that point (excluded
-                            points stay visible but are not fitted)
-  Click the graph           add a point there (in Predict mode this
-                            moves the prediction marker instead)
-  Click a card's swatch     show/hide that model's curve
-  Click a card              expand/collapse its details
-  Window button (top right of the Graph panel)
-                            opens a popover to type exact graph
-                            bounds; tab cycles the four boxes,
-                            enter applies, escape closes
-  Sensitivity tab           drag a slider to move a parameter
-                            within +/-2 standard errors; Reset
-                            refits and restores the scores
+         Click a table cell        edit it (type, then enter to commit,
+                                   tab to move to the next cell)
+         Click the draft row       add a new point by typing
+         Click x on a table row    delete that point
+         Click o on a table row    exclude/include that point (excluded
+                                   points stay visible but are not fitted)
+         Click the graph           add a point there (in Predict mode this
+                                   moves the prediction marker instead)
+         Click a card's swatch     show/hide that model's curve
+         Click a card              expand/collapse its details
+         Window button (top right of the Graph panel)
+                                   opens a popover to type exact graph
+                                   bounds; tab cycles the four boxes,
+                                   enter applies, escape closes
+         Sensitivity tab           drag a slider to move a parameter
+                                   within +/-2 standard errors; Reset
+                                   refits and restores the scores
 
 Notes for grading
 -----------------
