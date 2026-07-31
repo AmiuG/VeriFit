@@ -617,3 +617,94 @@ class ModelCards:
             drawLabel('too close to call', self.left, y, size=9,
                       align='left', bold=True)
     ########################################################################
+
+class PredictPanel:
+    def __init__(self, left, top, width, height):
+        self.left, self.top = left, top
+        self.width, self.height = width, height
+        self.buffer = ''
+        self.value = None
+        self.isEditing = False
+        self.boxLeft = left + 26
+        self.boxTop = top + 6
+        self.boxWidth, self.boxHeight = 110, 20
+
+    def boxContains(self, mouseX, mouseY):
+        return (self.boxLeft <= mouseX <= self.boxLeft + self.boxWidth and
+                self.boxTop <= mouseY <= self.boxTop + self.boxHeight)
+
+    # called when the user drags the marker on the graph instead of typing
+    def setValue(self, x):
+        self.value = x
+        self.buffer = formatCell(x)
+        self.isEditing = False
+
+    def handleClick(self, mouseX, mouseY):
+        self.isEditing = self.boxContains(mouseX, mouseY)
+        return self.isEditing
+
+    def handleKey(self, key):
+        if not self.isEditing:
+            return False
+        if key == 'escape':
+            self.isEditing = False
+        elif key == 'backspace':
+            self.buffer = self.buffer[:-1]
+            self.commit()
+        elif key in ('enter', 'return'):
+            self.commit()
+            self.isEditing = False
+        elif len(key) == 1:
+            self.buffer += key
+            self.commit()
+        else:
+            return False
+        return True
+
+    def commit(self):
+        works, result = dataset.parseNumber(self.buffer)
+        self.value = result if works else None
+
+    def draw(self, data, analysisEngine, result, colorForResult):
+        drawLabel('x =', self.left, self.boxTop + self.boxHeight / 2, size=11,
+                  align='left')
+        drawRect(self.boxLeft, self.boxTop, self.boxWidth, self.boxHeight,
+                 fill=editFill if self.isEditing else 'white',
+                 border=panelBorder)
+        shown = self.buffer + ('|' if self.isEditing else '')
+        drawLabel(shown, self.boxLeft + 5, self.boxTop + self.boxHeight / 2,
+                  size=11, align='left')
+        drawLabel('or drag the line on the graph',
+                  self.boxLeft + self.boxWidth + 10,
+                  self.boxTop + self.boxHeight / 2, size=9, align='left',
+                  fill=mutedColor)
+
+        if self.value is None:
+            drawLabel('Type an x value to predict at.', self.left,
+                      self.top + 44, size=10, align='left', fill=mutedColor)
+            return
+
+        # one line per visible model, so competing predictions can be compared
+        y = self.top + 42
+        shownAny = False
+        for candidate in analysisEngine.results:
+            if not candidate.isVisible:
+                continue
+            guess = analysisEngine.predictAt(candidate, self.value)
+            text = 'cannot predict here' if guess is None else formatScore(guess, 3)
+            drawLabel(f'{candidate.model.name}', self.left, y, size=10,
+                      align='left', fill=colorForResult(candidate))
+            drawLabel(f'y = {text}', self.left + 96, y, size=10, align='left')
+            y += 14
+            shownAny = True
+        if not shownAny:
+            drawLabel('No curve is switched on.', self.left, y, size=10,
+                      align='left', fill=mutedColor)
+
+        if data.isExtrapolation(self.value):
+            drawRect(self.left + 210, self.top + 34, self.width - 216, 34,
+                     fill=warningFill, border=errorColor)
+            drawLabel('outside the data range', self.left + 218,
+                      self.top + 45, size=10, align='left', fill=errorColor)
+            drawLabel('the models disagree most here', self.left + 218,
+                      self.top + 59, size=9, align='left', fill=mutedColor)
