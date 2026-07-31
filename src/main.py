@@ -21,6 +21,7 @@ graphLeft = tableLeft + tableWidth + margin
 resultsLeft = graphLeft + graphWidth + margin
 
 backgroundColor = rgb(246, 246, 246)
+markerColor = rgb(120, 120, 200)
 
 sampleXs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 sampleYs = [2.4, 5.1, 6.2, 9.4, 10.1, 13.4, 14.0, 17.6, 18.1, 21.4, 22.2, 25.6]
@@ -51,8 +52,26 @@ def onAppStart(app):
         app.graphPanel.contentTop() + 12,
         app.graphPanel.width - pad - 20,
         graphHeight)
-    app.residuals = graphview.ResidualPlot(
-        app.graph.left, app.graph.bottom + 40, app.graph.width, 104)
+
+    # the three tools take turns in one shared rectangle under the graph
+    stripLeft = app.graph.left
+    stripWidth = app.graph.width
+    tabTop = app.graph.bottom + 30
+    stripTop = tabTop + ui.TabBar.height
+    stripHeight = 96
+
+    app.tabs = ui.TabBar(stripLeft, tabTop, stripWidth,
+                         [('Residuals', 'residuals'),
+                          ('Predict', 'predict'),
+                          ('Sensitivity', 'sensitivity')])
+    app.mode = 'residuals'
+
+    app.residuals = graphview.ResidualPlot(stripLeft, stripTop + 6,
+                                           stripWidth, stripHeight - 12)
+    app.predict = ui.PredictPanel(stripLeft, stripTop, stripWidth, stripHeight)
+    app.sensitivity = ui.SensitivityPanel(stripLeft, stripTop, stripWidth,
+                                          stripHeight)
+
 
     app.buttons = makeButtons()
     app.status = 'Click a cell in the table to start entering data.'
@@ -67,7 +86,7 @@ def makeButtons():
                                  ('Undo', 'undo', 62),
                                  ('Include all', 'includeAll', 86),
                                  ('Clear', 'clear', 62)]:
-        buttons.append(ui.Button(left, 20, width, 24, label, action))
+        buttons.append(ui.Button(left, 30, width, 24, label, action))
         left += width + 6
     buttons.append(ui.Button(windowWidth - margin - 96, 20, 96, 24,
                              'Reframe graph', 'reframe'))
@@ -192,7 +211,7 @@ def onKeyPress(app, key):
 
 
 def drawHeader(app):
-    drawLabel('ModelLab', margin, 14, size=18, bold=True, align='left')
+    drawLabel('VeriFit!', margin, 14, size=18, bold=True, align='left')
     drawLabel('fitting data is not the same as predicting it',
               margin + 96, 16, size=11, align='left', fill=ui.mutedColor)
     for button in app.buttons:
