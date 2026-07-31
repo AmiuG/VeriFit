@@ -108,6 +108,46 @@ class TabBar:
                       self.top + TabBar.height / 2, size=11,
                       bold=isActive, fill=textColor if isActive else mutedColor)
 
+class Slider:
+    trackHeight = 4
+    knobRadius = 6
+    labelWidth = 74
+
+    def __init__(self, left, top, width):
+        self.left, self.top, self.width = left, top, width
+        self.trackLeft = left + Slider.labelWidth
+        self.trackWidth = width - Slider.labelWidth - 74
+
+    # where the knob sits for a value inside (low, high)
+    def knobX(self, value, low, high):
+        if high <= low:
+            return self.trackLeft + self.trackWidth / 2
+        fraction = (value - low) / (high - low)
+        fraction = min(1, max(0, fraction))
+        return self.trackLeft + fraction * self.trackWidth
+
+    # the value a mouse position corresponds to, clamped to the range
+    def valueAt(self, mouseX, low, high):
+        if self.trackWidth <= 0:
+            return low
+        fraction = (mouseX - self.trackLeft) / self.trackWidth
+        fraction = min(1, max(0, fraction))
+        return low + fraction * (high - low)
+
+    def contains(self, mouseX, mouseY):
+        return (self.left <= mouseX <= self.left + self.width and
+                abs(mouseY - self.top) <= Slider.knobRadius + 4)
+
+    def draw(self, name, value, low, high, isAdjusted):
+        drawLabel(name, self.left, self.top, size=10, align='left',
+                  fill=textColor)
+        drawRect(self.trackLeft, self.top - Slider.trackHeight / 2,
+                 self.trackWidth, Slider.trackHeight, fill=sliderTrack)
+        drawCircle(self.knobX(value, low, high), self.top, Slider.knobRadius,
+                   fill=errorColor if isAdjusted else sliderKnob)
+        drawLabel(formatScore(value, 4), self.left + self.width, self.top,
+                  size=10, align='right', fill=mutedColor)
+
 # ----------------------------------------------------------------------
 # THE DATA TABLE
 # ----------------------------------------------------------------------
