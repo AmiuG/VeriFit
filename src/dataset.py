@@ -174,6 +174,15 @@ class Dataset:
         self.updateOffset()
         return True
 
+    def rowOfActiveIndex(self, activeIndex):
+        seen = 0
+        for row in range(len(self.points)):
+            if not self.points[row].isExcluded:
+                if seen == activeIndex:
+                    return row
+                seen += 1
+        return None
+
     # ranges for future usage on graphing
     def getRawXRange(self):
         xs = self.getRawXs()
