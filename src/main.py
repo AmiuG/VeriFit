@@ -72,7 +72,6 @@ def onAppStart(app):
     app.sensitivity = ui.SensitivityPanel(stripLeft, stripTop, stripWidth,
                                           stripHeight)
 
-
     app.buttons = makeButtons()
     app.status = 'Click a cell in the table to start entering data.'
     refit(app)
@@ -98,6 +97,8 @@ def makeButtons():
 def refit(app):
     app.engine.analyze()
 
+def selected(app):
+    return app.cards.selectedResult(app.engine)
 
 def loadSample(app):
     app.data = dataset.Dataset(list(sampleXs), list(sampleYs))
@@ -130,6 +131,11 @@ def doAction(app, action):
     elif action == 'reframe':
         app.graph.fitToDataset(app.data)
         app.status = 'Graph reframed.'
+    elif action == 'resetParams':
+        # refitting is the honest way back: it restores the parameters and
+        # clears isAdjusted, so CV and AICc become meaningful again
+        refit(app)
+        app.status = 'Parameters reset to the fitted values.'
 
 
 def onMousePress(app, mouseX, mouseY):
@@ -137,6 +143,14 @@ def onMousePress(app, mouseX, mouseY):
         if button.contains(mouseX, mouseY):
             doAction(app, button.action)
             return
+        
+    tabKey = app.tabs.keyAt(mouseX, mouseY)
+    if tabKey is not None:
+        app.mode = tabKey
+        app.sensitivity.draggingIndex = None
+        app.predict.isEditing = False
+        app.status = f'Showing {tabKey}.'
+        return
 
     if app.tablePanel.contains(mouseX, mouseY):
         # the table edits its own cells, but hands deletion and exclusion
@@ -174,6 +188,28 @@ def onMousePress(app, mouseX, mouseY):
                 app.status = f'Showing residuals for {result.model.name}.'
         return
 
+    if app.mode == 'predict':
+        if app.predict.handleClick(mouseX, mouseY):
+            return
+    elif app.mode == 'sensitivity':
+        if app.sensitivity.resetButton.contains(mouseX, mouseY):
+            doAction(app, 'resetParams')
+            return
+        index = app.sensitivity.sliderAt(mouseX, mouseY, selected(app))
+        if index is not None:
+            app.sensitivity.draggingIndex = index
+            dragSlider(app, mouseX)
+            return
+
+    if app.graph.isInPanel(mouseX, mouseY):
+        # in predict mode a click on the graph moves the marker instead of
+        # adding a point, otherwise you could never place it precisely
+        if app.mode == 'predict':
+            x, y = app.graph.screenToData(mouseX, mouseY)
+            app.predict.setValue(x)
+            app.status = 'Prediction marker moved.'
+            return
+
     if app.graph.isInPanel(mouseX, mouseY):
         if app.table.isEditing():
             app.table.commitCell(app.data)
@@ -184,8 +220,33 @@ def onMousePress(app, mouseX, mouseY):
             app.status = 'Added a point by clicking the graph.'
             refit(app)
 
+def dragSlider(app, mouseX):
+    result = selected(app)
+    params = app.sensitivity.valueFromDrag(mouseX, result)
+    if params is None:
+        return
+    result.model.setParams(params)
+    # the residual plot and the card numbers follow the slider live
+    app.engine.rescoreAdjusted(result)
+    app.status = f'{result.model.name} adjusted by hand.'
+
+
+def onMouseDrag(app, mouseX, mouseY):
+    if app.mode == 'sensitivity' and app.sensitivity.draggingIndex is not None:
+        dragSlider(app, mouseX)
+    elif app.mode == 'predict' and app.graph.isInPanel(mouseX, mouseY):
+        x, y = app.graph.screenToData(mouseX, mouseY)
+        app.predict.setValue(x)
+
+
+def onMouseRelease(app, mouseX, mouseY):
+    app.sensitivity.draggingIndex = None
+
 
 def onKeyPress(app, key):
+
+    if app.mode == 'predict' and app.predict.handleKey(key):
+        return
     # while a cell is being edited the table gets first refusal on every key,
     # otherwise typing 'c' into a cell would clear the whole dataset
     if app.table.handleKey(key, app.data):
@@ -202,6 +263,12 @@ def onKeyPress(app, key):
         doAction(app, 'undo')
     elif key == 's':
         doAction(app, 'sample')
+    elif key == 'r':
+        app.mode = 'residuals'
+    elif key == 'p':
+        app.mode = 'predict'
+    elif key == 'v':
+        app.mode = 'sensitivity'
     elif key in ('1', '2', '3', '4', '5', '6', '7'):
         index = int(key) - 1
         if index < len(app.engine.results):
@@ -218,19 +285,37 @@ def drawHeader(app):
         button.draw()
 
 
+def drawStrip(app):
+    result = selected(app)
+    if app.mode == 'residuals':
+        if result is None:
+            app.residuals.drawEmpty('select a model to see its residuals')
+        else:
+            app.residuals.draw(result, app.data.getRawXs(),
+                               app.graph.xMin, app.graph.xMax,
+                               result.outlierIndex)
+    elif app.mode == 'predict':
+        app.predict.draw(app.data, app.engine, result, app.graph.colorFor)
+    else:
+        app.sensitivity.draw(result)
+
+
 def drawGraphPanel(app):
     app.graphPanel.drawFrame()
     # a bug inside a view should not take the whole app down while the
     # interface is still being built
     try:
         app.graph.draw(app.data, app.engine)
-        selected = app.cards.selectedResult(app.engine)
-        if selected is None:
-            app.residuals.drawEmpty('select a model to see its residuals')
-        else:
-            app.residuals.draw(selected, app.data.getRawXs(),
-                               app.graph.xMin, app.graph.xMax,
-                               selected.outlierIndex)
+        result = selected(app)
+        # the untouched fit stays visible behind a hand-adjusted curve
+        if result is not None and result.isAdjusted():
+            app.graph.drawGhostCurve(app.engine, result,
+                                     app.graph.colorFor(result))
+        if app.mode == 'predict' and app.predict.value is not None:
+            app.graph.drawPredictionMarker(app.engine, app.predict.value,
+                                           markerColor)
+        app.tabs.draw(app.mode)
+        drawStrip(app)
     except Exception as failure:
         drawLabel('a view raised:', app.graphPanel.left + 14,
                   app.graphPanel.contentTop() + 20, size=12, bold=True,
