@@ -11,6 +11,11 @@ selectFill = rgb(219, 234, 254)
 editFill = rgb(254, 243, 199)
 buttonFill = rgb(248, 248, 248)
 buttonDown = rgb(226, 226, 226)
+tabActiveFill = rgb(255, 255, 255)
+tabIdleFill = rgb(236, 236, 236)
+sliderTrack = rgb(220, 220, 220)
+sliderKnob = rgb(70, 70, 70)
+warningFill = rgb(255, 244, 214)
 
 
 # 3.0 -> '3', 2.5 -> '2.5', 1/3 -> '0.3333'
@@ -72,6 +77,36 @@ class Button:
                   self.top + self.height / 2, size=11,
                   fill=textColor if enabled else mutedColor)
 
+class TabBar:
+    height = 22
+
+    def __init__(self, left, top, width, tabs):
+        # tabs is a list of (label, key); the key is what main.py switches on
+        self.left, self.top, self.width = left, top, width
+        self.tabs = tabs
+        self.tabWidth = width / len(tabs)
+
+    def keyAt(self, mouseX, mouseY):
+        if not (self.top <= mouseY <= self.top + TabBar.height):
+            return None
+        if not (self.left <= mouseX <= self.left + self.width):
+            return None
+        index = int((mouseX - self.left) // self.tabWidth)
+        if index < 0 or index >= len(self.tabs):
+            return None
+        return self.tabs[index][1]
+
+    def draw(self, activeKey):
+        for i in range(len(self.tabs)):
+            label, key = self.tabs[i]
+            left = self.left + i * self.tabWidth
+            isActive = (key == activeKey)
+            drawRect(left, self.top, self.tabWidth, TabBar.height,
+                     fill=tabActiveFill if isActive else tabIdleFill,
+                     border=panelBorder)
+            drawLabel(label, left + self.tabWidth / 2,
+                      self.top + TabBar.height / 2, size=11,
+                      bold=isActive, fill=textColor if isActive else mutedColor)
 
 # ----------------------------------------------------------------------
 # THE DATA TABLE
