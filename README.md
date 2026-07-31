@@ -30,7 +30,7 @@ cmu_graphics is the only library that needs to be installed:
 
 Keyboard shortcuts
 ------------------
-  s        load the sample dataset \n
+  s        load the sample dataset /n
   u        undo the last data change
   f        reframe the graph around the data
   r        show the Residuals tab
