@@ -584,7 +584,10 @@ class ModelCards:
         else:
             barWidth = 84
             drawRect(self.left + 16, y - 4, barWidth, 8, fill=titleFill)
-            drawRect(self.left + 16, y - 4, barWidth * result.akaikeWeight, 8,
+            filledWidth = barWidth * result.akaikeWeight
+            if filledWidth < 1:
+                filledWidth = 1
+            drawRect(self.left + 16, y - 4, filledWidth, 8,
                      fill=mutedColor)
             drawLabel(f'{result.akaikeWeight * 100:.0f}% of AICc support',
                       self.left + 16 + barWidth + 8, y, size=9, align='left',
@@ -865,6 +868,8 @@ class InfluencePanel:
             if not (self.left <= pixelX <= self.left + self.width):
                 continue
             barHeight = abs(entry.cvShift) / biggest * usableHeight
+            if barHeight < 1:
+                barHeight = 1
             color = influenceAlertColor if entry.changesWinner else influenceBarColor
             drawRect(pixelX - InfluencePanel.barWidth / 2,
                      self.barsBottom - barHeight,
