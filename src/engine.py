@@ -49,7 +49,18 @@ class FitResults:
 
     def __repr__(self):
         return f'FitResult({self.model.name}, cvRmse={self.cvRmse})'
+    
+class InfluenceEntry:
+    def __init__(self, activeIndex, row):
+        self.activeIndex = activeIndex
+        self.row = row
+        self.winner = None
+        self.winnerCv = None
+        self.cvShift = None
+        self.changesWinner = False
 
+    def __repr__(self):
+        return f'InfluenceEntry(row={self.row}, winner={self.winner})'
 
 class AnalysisEngine:
     def __init__(self, dataset, candidates):
@@ -103,6 +114,58 @@ class AnalysisEngine:
         if usesShiftedX:
             x = self.dataset.toFitX(x)
         return stats.safePredict(model, x)
+
+    # leave one point out, refit everything, and see what changed. A ranking
+    # that survives every point being removed is worth believing; one that
+    # flips when a single point goes is worth doubting.
+    def influenceSweep(self):
+        if len(self.results) == 0:
+            return None
+        baselineWinner = self.results[0].model.name
+        baselineCv = self.results[0].cvRmse
+        active = self.dataset.getActivePoints()
+        # with three points or fewer, dropping one leaves too little to fit
+        if len(active) < 4:
+            return None
+
+        # the table row each active point came from, captured before anything
+        # is excluded: asking mid-sweep would give the wrong answer
+        rows = []
+        for row in range(len(self.dataset.points)):
+            if not self.dataset.points[row].isExcluded:
+                rows.append(row)
+
+        report = []
+        for i in range(len(active)):
+            point = active[i]
+            point.isExcluded = True
+            self.dataset.updateOffset()
+            try:
+                fresh = []
+                for candidate in self.candidates:
+                    fresh.append(candidate.makeBlankCopy())
+                trial = AnalysisEngine(self.dataset, fresh)
+                trial.analyze()
+                entry = InfluenceEntry(i, rows[i])
+                if len(trial.results) > 0:
+                    entry.winner = trial.results[0].model.name
+                    entry.winnerCv = trial.results[0].cvRmse
+                    entry.changesWinner = (entry.winner != baselineWinner)
+                    # how much the original winner's own score moved
+                    for other in trial.results:
+                        if other.model.name == baselineWinner:
+                            if baselineCv is not None and other.cvRmse is not None:
+                                entry.cvShift = other.cvRmse - baselineCv
+                report.append(entry)
+            finally:
+                # the point goes back no matter what happened above
+                point.isExcluded = False
+                self.dataset.updateOffset()
+
+        # the sweep refitted the shared candidate models, so put the real
+        # analysis back before anything tries to draw a curve
+        self.analyze()
+        return (baselineWinner, report)
 
     def predictAt(self, result, x):
         if result.model.usesShiftedX:
