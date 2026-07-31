@@ -30,16 +30,16 @@ cmu_graphics is the only library that needs to be installed:
 
 Keyboard shortcuts
 ------------------
-  s        load the sample dataset /n
-  u        undo the last data change
-  f        reframe the graph around the data
-  r        show the Residuals tab
-  p        show the Predict tab
-  v        show the Sensitivity tab
-  i        show the Influence tab (runs the leave-one-out sweep)
-  q        show the R2 vs CV tab
-  1 - 7    expand the model card at that rank
-  up/down  scroll the data table
+         s        load the sample dataset /n
+         u        undo the last data change
+         f        reframe the graph around the data
+         r        show the Residuals tab
+         p        show the Predict tab
+         v        show the Sensitivity tab
+         i        show the Influence tab (runs the leave-one-out sweep)
+         q        show the R2 vs CV tab
+         1 - 7    expand the model card at that rank
+         up/down  scroll the data table
 
 Mouse controls
 --------------
