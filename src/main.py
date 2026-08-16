@@ -81,6 +81,8 @@ def onAppStart(app):
     # the Sample dropdown sits just left of the ? button
     app.samples = ui.SampleMenu(windowWidth - margin - 96 - 34 - 70, 20)
     app.pressedButton = None
+    # where the mouse is resting, so buttons can light up under it
+    app.mouseX, app.mouseY = -1, -1
     app.windowControls = ui.WindowControls(app.graphPanel)
     app.help = ui.HelpOverlay(windowWidth, windowHeight)
     app.status = 'Click a cell in the table to start entering data.'
@@ -286,6 +288,10 @@ def onMouseDrag(app, mouseX, mouseY):
         app.predict.setValue(x)
 
 
+def onMouseMove(app, mouseX, mouseY):
+    app.mouseX, app.mouseY = mouseX, mouseY
+
+
 def onMouseRelease(app, mouseX, mouseY):
     app.sensitivity.draggingIndex = None
     app.pressedButton = None
@@ -363,8 +369,9 @@ def drawHeader(app):
     drawLabel('fitting data is not the same as predicting it',
               margin + 96, 16, size=11, align='left', fill=ui.mutedColor)
     for button in app.buttons:
-        button.draw(pressed=(button is app.pressedButton))
-    app.samples.drawButton()
+        button.draw(pressed=(button is app.pressedButton),
+                    hovered=button.contains(app.mouseX, app.mouseY))
+    app.samples.drawButton(app.mouseX, app.mouseY)
 
 
 def drawStrip(app):
@@ -404,9 +411,9 @@ def drawGraphPanel(app):
         if app.mode == 'predict' and app.predict.value is not None:
             app.graph.drawPredictionMarker(app.engine, app.predict.value,
                                            markerColor)
-        app.tabs.draw(app.mode)
+        app.tabs.draw(app.mode, app.tabs.keyAt(app.mouseX, app.mouseY))
         drawStrip(app)
-        app.windowControls.draw(app.graph)
+        app.windowControls.draw(app.graph, app.mouseX, app.mouseY)
     except Exception as failure:
         drawLabel('a view raised:', app.graphPanel.left + 14,
                   app.graphPanel.contentTop() + 20, size=12, bold=True,
@@ -426,7 +433,7 @@ def redrawAll(app):
     drawGraphPanel(app)
 
     app.resultsPanel.drawFrame()
-    app.cards.draw(app.engine, app.graph.colorFor)
+    app.cards.draw(app.engine, app.graph.colorFor, app.mouseX, app.mouseY)
 
     offsetText = 'none'
     if app.data.usesOffset():
@@ -440,7 +447,7 @@ def redrawAll(app):
               fill=ui.mutedColor)
 
     # the open sample menu and the overlay go on last, above the panels
-    app.samples.drawMenu(app.sampleIndex)
+    app.samples.drawMenu(app.sampleIndex, app.mouseX, app.mouseY)
     app.help.draw()
 
 

@@ -6,7 +6,10 @@ panelBorder = rgb(205, 205, 205)
 # the one accent color, used sparingly so it always means "look here"
 accentColor = rgb(0, 114, 178)
 accentPressed = rgb(0, 90, 145)
+accentHover = rgb(0, 104, 164)
 shadowColor = rgb(226, 228, 232)
+buttonHover = rgb(238, 239, 242)
+tabHover = rgb(229, 229, 229)
 titleFill = rgb(242, 242, 242)
 textColor = 'black'
 mutedColor = rgb(125, 125, 125)
@@ -83,17 +86,29 @@ class Button:
         return (self.left <= mouseX <= self.left + self.width and
                 self.top <= mouseY <= self.top + self.height)
 
-    def draw(self, enabled = True, pressed = False, primary = False):
-        # a primary button is filled with the accent color, so the one
-        # action a new user needs stands out from the gray ones
+    def draw(self, enabled = True, pressed = False, primary = False,
+             hovered = False):
+        # three shades in all: idle, hovered, and held down
         if primary:
-            drawRect(self.left, self.top, self.width, self.height,
-                     fill=accentPressed if pressed else accentColor)
+            if pressed:
+                fill = accentPressed
+            elif hovered:
+                fill = accentHover
+            else:
+                fill = accentColor
+            # a primary button is filled with the accent color, so the one
+            # action a new user needs stands out from the gray ones
+            drawRect(self.left, self.top, self.width, self.height, fill=fill)
             drawLabel(self.label, self.left + self.width / 2,
                       self.top + self.height / 2, size=11, bold=True,
                       fill='white')
             return
-        fill = buttonDown if pressed else buttonFill
+        if pressed:
+            fill = buttonDown
+        elif hovered:
+            fill = buttonHover
+        else:
+            fill = buttonFill
         drawRect(self.left, self.top, self.width, self.height,
                  fill=fill, border=panelBorder)
         drawLabel(self.label, self.left + self.width / 2,
@@ -119,14 +134,19 @@ class TabBar:
             return None
         return self.tabs[index][1]
 
-    def draw(self, activeKey):
+    def draw(self, activeKey, hoveredKey = None):
         for i in range(len(self.tabs)):
             label, key = self.tabs[i]
             left = self.left + i * self.tabWidth
             isActive = (key == activeKey)
+            if isActive:
+                fill = tabActiveFill
+            elif key == hoveredKey:
+                fill = tabHover
+            else:
+                fill = tabIdleFill
             drawRect(left, self.top, self.tabWidth, TabBar.height,
-                     fill=tabActiveFill if isActive else tabIdleFill,
-                     border=panelBorder)
+                     fill=fill, border=panelBorder)
             drawLabel(label, left + self.tabWidth / 2,
                       self.top + TabBar.height / 2, size=11,
                       bold=isActive, fill=textColor if isActive else mutedColor)
@@ -628,8 +648,10 @@ class ModelCards:
     # written by Claude Opus 5 / Jul 30, 2026
     ########################################################################
 
-    def draw(self, analysisEngine, colorForResult):
-        self.verdictButton.draw(pressed=self.showVerdict)
+    def draw(self, analysisEngine, colorForResult, mouseX = -1, mouseY = -1):
+        self.verdictButton.draw(
+            pressed=self.showVerdict,
+            hovered=self.verdictButton.contains(mouseX, mouseY))
         if len(analysisEngine.results) == 0:
             drawLabel('No model fitted yet.', self.left,
                       self.panel.contentTop() + 16, size=11, align='left',
@@ -762,18 +784,20 @@ class SampleMenu:
         self.isOpen = False
         return 'closed'
 
-    def drawButton(self, isPressed = False):
-        self.button.draw(pressed=(self.isOpen or isPressed), primary=True)
+    def drawButton(self, mouseX = -1, mouseY = -1):
+        self.button.draw(pressed=self.isOpen, primary=True,
+                         hovered=self.button.contains(mouseX, mouseY))
 
     # drawn late in redrawAll so the open menu sits above the panels
-    def drawMenu(self, activeIndex):
+    def drawMenu(self, activeIndex, mouseX = -1, mouseY = -1):
         if not self.isOpen:
             return
         drawRect(self.rows[0].left + 3, self.rows[0].top + 3,
                  SampleMenu.width, SampleMenu.rowHeight * len(self.rows),
                  fill=shadowColor)
         for i in range(len(self.rows)):
-            self.rows[i].draw(pressed=(i == activeIndex))
+            self.rows[i].draw(pressed=(i == activeIndex),
+                              hovered=self.rows[i].contains(mouseX, mouseY))
 
 
 class HelpOverlay:
@@ -1352,8 +1376,10 @@ class WindowControls:
 
     # ---------- drawing ----------
 
-    def draw(self, graph):
-        self.toggleButton.draw(pressed=self.isOpen)
+    def draw(self, graph, mouseX = -1, mouseY = -1):
+        self.toggleButton.draw(
+            pressed=self.isOpen,
+            hovered=self.toggleButton.contains(mouseX, mouseY))
         if not self.isOpen:
             return
 
