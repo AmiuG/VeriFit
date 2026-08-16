@@ -10,6 +10,7 @@ accentHover = rgb(0, 104, 164)
 shadowColor = rgb(226, 228, 232)
 buttonHover = rgb(238, 239, 242)
 tabHover = rgb(229, 229, 229)
+stripeFill = rgb(250, 250, 251)
 titleFill = rgb(242, 242, 242)
 textColor = 'black'
 mutedColor = rgb(125, 125, 125)
@@ -426,10 +427,12 @@ class DataTable:
         top = self.panel.contentTop()
         drawLabel('#', self.markLeft + DataTable.markWidth / 2,
                   top + DataTable.headerHeight / 2, size=10, fill=mutedColor)
-        drawLabel('x', self.xLeft + self.valueWidth / 2,
-                  top + DataTable.headerHeight / 2, size=10, bold=True)
-        drawLabel('y', self.yLeft + self.valueWidth / 2,
-                  top + DataTable.headerHeight / 2, size=10, bold=True)
+        drawLabel('x', self.xLeft + self.valueWidth - 8,
+                  top + DataTable.headerHeight / 2, size=10, bold=True,
+                  align='right')
+        drawLabel('y', self.yLeft + self.valueWidth - 8,
+                  top + DataTable.headerHeight / 2, size=10, bold=True,
+                  align='right')
         drawLine(self.markLeft, self.rowsTop,
                  self.deleteLeft + DataTable.deleteWidth, self.rowsTop,
                  fill=panelBorder)
@@ -438,16 +441,21 @@ class DataTable:
         top = self.rowTop(screenIndex)
         isDraft = self.isDraftRow(row, data)
         excluded = (not isDraft) and data.points[row].isExcluded
+        rowWidth = self.deleteLeft + DataTable.deleteWidth - self.markLeft
 
+        # faint stripes make a long column of numbers easier to follow
+        if (not isDraft) and row % 2 == 1:
+            drawRect(self.markLeft, top, rowWidth, DataTable.rowHeight,
+                     fill=stripeFill)
         if self.isEditing() and self.editRow == row:
-            drawRect(self.markLeft, top,
-                     self.deleteLeft + DataTable.deleteWidth - self.markLeft,
-                     DataTable.rowHeight, fill=selectFill)
+            drawRect(self.markLeft, top, rowWidth, DataTable.rowHeight,
+                     fill=selectFill)
 
         # the row number doubles as the exclude toggle
         if isDraft:
             drawLabel('+', self.markLeft + DataTable.markWidth / 2,
-                      top + DataTable.rowHeight / 2, size=11, fill=mutedColor)
+                      top + DataTable.rowHeight / 2, size=12, bold=True,
+                      fill=accentColor)
         else:
             drawLabel(str(row + 1), self.markLeft + DataTable.markWidth / 2,
                       top + DataTable.rowHeight / 2, size=10,
@@ -465,15 +473,19 @@ class DataTable:
         if editing:
             drawRect(left, top, self.valueWidth, DataTable.rowHeight,
                      fill=editFill, border=panelBorder)
-            text = self.currNum + '|'
-            fill = textColor
-        else:
-            text = self.currentText(row, col, data)
-            if text == '':
-                text = '-' if isDraft else ''
-            fill = mutedColor if (isDraft or excluded) else textColor
-        drawLabel(text, left + 5, top + DataTable.rowHeight / 2,
-                  size=11, align='left', fill=fill)
+            # the caret follows the text, so keep this one left aligned
+            drawLabel(self.currNum + '|', left + 5,
+                      top + DataTable.rowHeight / 2, size=11, align='left',
+                      fill=textColor)
+            return
+        text = self.currentText(row, col, data)
+        if text == '':
+            text = 'add' if (isDraft and col == 0) else ''
+        fill = mutedColor if (isDraft or excluded) else textColor
+        # numbers line up on their last digit, which is far easier to scan
+        drawLabel(text, left + self.valueWidth - 8,
+                  top + DataTable.rowHeight / 2, size=11, align='right',
+                  fill=fill)
 
     def drawFooter(self, data):
         top = self.panel.bottom - DataTable.footerHeight
