@@ -7,6 +7,7 @@
 
 import math
 import linalg
+import stats
 import models
 
 
@@ -142,11 +143,123 @@ def testAdjusting():
     print('Passed!')
 
 
+def testStatsBasics():
+    print('Testing residuals, rmse, and r squared...', end='')
+    linear = models.LinearModel()
+    linear.fit([0, 1, 2], [1, 3, 5])
+    residuals = stats.getResiduals(linear, [0, 1, 2], [1, 3, 5])
+    assert(listsAlmostEqual(residuals, [0, 0, 0]))
+
+    assert(almostEqual(stats.rmse([3, -4]), math.sqrt(12.5)))
+    assert(stats.rmse([]) is None and stats.rmse(None) is None)
+
+    assert(almostEqual(stats.rSquared(linear, [0, 1, 2], [1, 3, 5]), 1))
+    # a flatline predicts the mean, which is exactly what R^2 scores
+    # against, so its R^2 is zero by definition
+    flat = models.FlatlineModel()
+    flat.fit([1, 2, 3], [1, 2, 3])
+    assert(almostEqual(stats.rSquared(flat, [1, 2, 3], [1, 2, 3]), 0))
+
+    assert(stats.median([5, 1, 3]) == 3)
+    assert(almostEqual(stats.median([4, 1, 3, 2]), 2.5))
+    print('Passed!')
+
+
+def testCrossValidation():
+    print('Testing cross validation...', end='')
+    assert(stats.chooseFoldCount(10) == 10)
+    assert(stats.chooseFoldCount(30) == 10)
+
+    # on a perfect line every held-out point is predicted exactly
+    linear = models.LinearModel()
+    xs = [1, 2, 3, 4, 5, 6]
+    ys = [2 * x + 1 for x in xs]
+    linear.fit(xs, ys)
+    assert(almostEqual(stats.crossValidatedRmse(linear, xs, ys), 0))
+
+    # there is no randomness anywhere, so the score must repeat exactly
+    noisyYs = [2.4, 5.1, 6.2, 9.4, 10.1, 13.4]
+    linear = models.LinearModel()
+    linear.fit(xs, noisyYs)
+    first = stats.crossValidatedRmse(linear, xs, noisyYs)
+    second = stats.crossValidatedRmse(linear, xs, noisyYs)
+    assert(first is not None and first == second)
+    assert(stats.crossValidatedRmse(linear, [1], [2]) is None)
+    print('Passed!')
+
+
+def testInformationScores():
+    print('Testing AICc and akaike weights...', end='')
+    xs = [1, 2, 3, 4, 5, 6, 7, 8]
+    ys = [2.4, 5.1, 6.2, 9.4, 10.1, 13.4, 14.0, 17.6]
+    linear = models.LinearModel()
+    linear.fit(xs, ys)
+    assert(stats.aicc(linear, xs, ys) is not None)
+    # linear needs n - K - 1 > 0 with K = 3, so four points is not enough
+    assert(stats.aicc(linear, xs[:4], ys[:4]) is None)
+
+    weights = stats.akaikeWeights([100, 102, None])
+    assert(weights[2] is None)
+    assert(almostEqual(weights[0] + weights[1], 1))
+    assert(weights[0] > weights[1])
+    assert(stats.akaikeWeights([None, None]) == [None, None])
+    print('Passed!')
+
+
+def testResidualPatterns():
+    print('Testing runs test and outlier spotting...', end='')
+    assert(stats.countSignRuns([1, 2, -1, -2, 3]) == 3)
+    assert(stats.countSignRuns([1, 0, 1]) == 1)  # zeros carry no sign
+
+    # perfectly alternating signs means more runs than chance expects
+    z = stats.runsTestScoreZ([1, -1, 1, -1, 1, -1, 1, -1])
+    assert(z is not None and z > 0)
+    # one positive block then one negative block is the classic sign that
+    # the data bends away from the model
+    z = stats.runsTestScoreZ([1, 1, 1, 1, -1, -1, -1, -1])
+    assert(z is not None and z < 0)
+    # too small for the test to mean anything
+    assert(stats.runsTestScoreZ([1, -1, 1]) is None)
+
+    assert(stats.outlierIndex([1, -1, 1, -1, 20]) == 4)
+    assert(stats.outlierIndex([1, -1, 1, -1, 2]) is None)
+    print('Passed!')
+
+
+def testStandardErrors():
+    print('Testing standard errors...', end='')
+    # a perfect fit has zero leftover noise, so both errors are zero
+    linear = models.LinearModel()
+    linear.fit([0, 1, 2], [0, 1, 2])
+    errors = stats.standardErrors(linear, [0, 1, 2], [0, 1, 2])
+    assert(listsAlmostEqual(errors, [0, 0]))
+
+    # noisy data must give a positive error for every parameter
+    xs = [1, 2, 3, 4, 5, 6]
+    ys = [2.4, 5.1, 6.2, 9.4, 10.1, 13.4]
+    linear = models.LinearModel()
+    linear.fit(xs, ys)
+    errors = stats.standardErrors(linear, xs, ys)
+    assert(errors is not None and len(errors) == 2)
+    assert(errors[0] > 0 and errors[1] > 0)
+
+    # two points and two parameters leave nothing to estimate noise from
+    linear = models.LinearModel()
+    linear.fit([0, 1], [0, 1])
+    assert(stats.standardErrors(linear, [0, 1], [0, 1]) is None)
+    print('Passed!')
+
+
 def main():
     testLinalg()
     testPolynomialModels()
     testCurvedModels()
     testAdjusting()
+    testStatsBasics()
+    testCrossValidation()
+    testInformationScores()
+    testResidualPatterns()
+    testStandardErrors()
     print('All tests passed!')
 
 
