@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VeriFit</title>
+<meta name="description" content="Find which equation actually describes your data, and how much to trust the answer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="web/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>VeriFit<span class="accent">!</span></h1>
+  <p class="tagline">fitting data is not the same as predicting it</p>
+  <div class="samples" id="sampleButtons"></div>
+</header>
+
+<main>
+  <!-- shown while python is still starting up -->
+  <section id="booting" class="card booting">
+    <div class="spinner"></div>
+    <p id="bootStatus">Starting up…</p>
+    <p class="muted small">The first visit downloads Python itself, which
+      takes a few seconds. After that it is cached.</p>
+  </section>
+
+  <section id="failed" class="card failure" hidden>
+    <h2>Something went wrong</h2>
+    <pre id="failureText"></pre>
+  </section>
+
+  <section id="app" hidden>
+    <div class="columns">
+      <div class="card graphCard">
+        <h2>Graph</h2>
+        <canvas id="graph" width="640" height="420"></canvas>
+      </div>
+
+      <div class="card modelsCard">
+        <h2>Models</h2>
+        <div id="verdict" class="verdict"></div>
+        <div id="warnings"></div>
+        <ol id="ranking" class="ranking"></ol>
+        <div id="unavailable" class="muted small"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js"></script>
+<script src="web/app.js"></script>
+
+</body>
+</html>

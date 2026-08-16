@@ -1,0 +1,211 @@
+/* The look follows the desktop app: one accent colour used sparingly,
+   soft cards on a cool grey background, and the Okabe-Ito curve colours
+   so the models stay tellable apart for colourblind readers. */
+
+:root {
+  --accent: #0072b2;
+  --accent-dark: #005a91;
+  --ink: #191e26;
+  --muted: #6b7280;
+  --line: #d6dae0;
+  --page: #f4f6f9;
+  --card: #ffffff;
+  --warn-bg: #fff4d6;
+  --warn-line: #e0b64a;
+  --danger: #c82828;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: Ubuntu, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.topbar {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  padding: 14px 22px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.accent { color: var(--accent); }
+
+.tagline {
+  margin: 0;
+  color: var(--muted);
+  font-style: italic;
+  font-size: 14px;
+}
+
+.samples {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.samples button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  background: #fafafa;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.samples button:hover { background: #eef0f3; }
+
+.samples button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 500;
+}
+
+main { padding: 22px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(20, 30, 50, 0.06);
+}
+
+.card h2 {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #464b54;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .columns { grid-template-columns: minmax(0, 1fr); }
+}
+
+canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+}
+
+/* the verdict, the one sentence a reader actually came for */
+.verdict {
+  background: #e8f1fb;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.verdict::before {
+  content: "VERDICT";
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: 3px;
+}
+
+.warning {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.ranking {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ranking li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 4px;
+  border-bottom: 1px solid #eef0f3;
+  font-size: 14px;
+}
+
+.ranking li:last-child { border-bottom: none; }
+
+.swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.rank { color: var(--muted); font-size: 13px; min-width: 15px; }
+.modelName { flex: 1; }
+
+.score {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+
+/* startup and error states */
+.booting { text-align: center; padding: 40px 20px; }
+
+.spinner {
+  width: 26px;
+  height: 26px;
+  margin: 0 auto 14px;
+  border: 3px solid #dfe3e8;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.failure { border-color: var(--danger); }
+.failure h2 { color: var(--danger); }
+
+.failure pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  background: #fff5f5;
+  padding: 10px;
+  border-radius: 6px;
+  margin: 0;
+}
