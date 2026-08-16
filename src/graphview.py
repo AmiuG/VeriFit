@@ -9,6 +9,7 @@ minorGridColor = rgb(241, 241, 241)
 majorGridColor = rgb(224, 224, 224)
 tickLabelColor = rgb(95, 95, 95)
 excludedColor = 'gray'
+ghostColor = rgb(150, 165, 180)
 # the Okabe-Ito palette, chosen so the curves stay tellable-apart for
 # colorblind users. The order matches makeAllModels.
 curveColors = [rgb(0, 114, 178),    # linear: blue
@@ -387,9 +388,30 @@ class GraphView:
         drawRect(self.left, self.top, self.width, self.height,
                  fill=None, border=borderColor)
 
+    # a faint sketch of points with a curve through them, so an empty
+    # graph still shows what the app is for
+    def drawGhostPreview(self):
+        spots = [(0.18, 0.30), (0.33, 0.44), (0.47, 0.54),
+                 (0.62, 0.66), (0.78, 0.79)]
+        previous = None
+        for fractionX, fractionY in spots:
+            pixelX = self.left + fractionX * self.width
+            pixelY = self.bottom - fractionY * self.height
+            if previous is not None:
+                drawLine(previous[0], previous[1], pixelX, pixelY,
+                         fill=ghostColor, lineWidth=2, opacity=45)
+            previous = (pixelX, pixelY)
+        for fractionX, fractionY in spots:
+            drawCircle(self.left + fractionX * self.width,
+                       self.bottom - fractionY * self.height,
+                       GraphView.pointRadius, fill=ghostColor, opacity=55)
+
     def drawEmptyMessage(self):
+        self.drawGhostPreview()
         middleX = self.left + self.width / 2
         middleY = self.top + self.height / 2
+        drawRect(middleX - 190, middleY - 26, 380, 52, fill='white',
+                 opacity=85)
         drawLabel('Click anywhere on the graph to add points,',
                   middleX, middleY - 10, size=14, fill=excludedColor)
         drawLabel('or press s to tour the sample datasets.',
