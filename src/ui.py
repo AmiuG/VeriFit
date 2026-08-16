@@ -496,6 +496,31 @@ class ModelCards:
             height += 10 * len(wrapText(warning, ModelCards.wrapWidth)) + 4
         return height + 6
 
+    # the engine's one-sentence conclusion sits at the very top, in its
+    # own box so it reads before any of the numbers
+    def verdictLines(self, analysisEngine):
+        return wrapText(analysisEngine.verdict(), ModelCards.wrapWidth)
+
+    def verdictHeight(self, analysisEngine):
+        lines = self.verdictLines(analysisEngine)
+        if len(lines) == 0:
+            return 0
+        return 10 * len(lines) + 26
+
+    def drawVerdict(self, analysisEngine):
+        lines = self.verdictLines(analysisEngine)
+        if len(lines) == 0:
+            return
+        top = self.panel.contentTop() + 6
+        drawRect(self.left - 4, top, self.width + 8, 10 * len(lines) + 20,
+                 fill=selectFill)
+        drawLabel('verdict', self.left + 4, top + 8, size=9, align='left',
+                  bold=True)
+        y = top + 18
+        for line in lines:
+            drawLabel(line, self.left + 4, y, size=9, align='left')
+            y += 10
+
     # the dataset's own cautions (too few points, repeated x-values) sit
     # above the cards, because they qualify the whole ranking at once
     def warningLines(self, analysisEngine):
@@ -517,7 +542,7 @@ class ModelCards:
         lines = self.warningLines(analysisEngine)
         if len(lines) == 0:
             return
-        top = self.panel.contentTop() + 6
+        top = self.panel.contentTop() + 6 + self.verdictHeight(analysisEngine)
         drawRect(self.left - 4, top, self.width + 8, 10 * len(lines) + 10,
                  fill=warningFill, border=panelBorder)
         y = top + 8
@@ -528,7 +553,8 @@ class ModelCards:
     # (index, top, totalHeight) for every result
     def rowLayout(self, analysisEngine):
         layout = []
-        top = self.panel.contentTop() + 6 + self.warningsHeight(analysisEngine)
+        top = self.panel.contentTop() + 6 + self.verdictHeight(analysisEngine) \
+              + self.warningsHeight(analysisEngine)
         for i in range(len(analysisEngine.results)):
             height = ModelCards.rowHeight
             if i == self.expandedIndex:
@@ -578,7 +604,7 @@ class ModelCards:
     # written by Claude Opus 5 / Jul 30, 2026
     ########################################################################
 
-    def draw(self, analysisEngine, colorForResult, tieMessage = ''):
+    def draw(self, analysisEngine, colorForResult):
         if len(analysisEngine.results) == 0:
             drawLabel('No model fitted yet.', self.left,
                       self.panel.contentTop() + 16, size=11, align='left',
@@ -588,6 +614,7 @@ class ModelCards:
                       fill=mutedColor)
             return
 
+        self.drawVerdict(analysisEngine)
         self.drawWarnings(analysisEngine)
         bottom = self.panel.bottom - 8
         for index, top, height in self.rowLayout(analysisEngine):
@@ -598,7 +625,7 @@ class ModelCards:
             if index == self.expandedIndex:
                 self.drawDetail(result, top + ModelCards.rowHeight)
 
-        self.drawFooter(analysisEngine, tieMessage)
+        self.drawFooter(analysisEngine)
 
     def drawRow(self, result, index, top, color):
         middle = top + ModelCards.rowHeight / 2
@@ -660,7 +687,9 @@ class ModelCards:
                 y += 10
             y += 4
 
-    def drawFooter(self, analysisEngine, tieMessage):
+    def drawFooter(self, analysisEngine):
+        # ties are covered by the verdict box now, so the footer only
+        # lists the models that could not be fitted
         y = self.panel.bottom - 12
         for name, reason in analysisEngine.unavailable:
             drawLabel(f'{name}: {reason}'[:48], self.left, y, size=9,
@@ -669,13 +698,6 @@ class ModelCards:
         if len(analysisEngine.unavailable) > 0:
             drawLabel('not fitted', self.left, y, size=9, align='left',
                       bold=True, fill=mutedColor)
-            y -= 14
-        if tieMessage != '':
-            for line in reversed(wrapText(tieMessage, ModelCards.wrapWidth)):
-                drawLabel(line, self.left, y, size=9, align='left')
-                y -= 10
-            drawLabel('too close to call', self.left, y, size=9,
-                      align='left', bold=True)
     ########################################################################
 
 class PredictPanel:

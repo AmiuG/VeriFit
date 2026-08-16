@@ -373,7 +373,7 @@ def redrawAll(app):
     drawGraphPanel(app)
 
     app.resultsPanel.drawFrame()
-    app.cards.draw(app.engine, app.graph.colorFor, app.engine.tieMessage)
+    app.cards.draw(app.engine, app.graph.colorFor)
 
     offsetText = 'none'
     if app.data.usesOffset():
