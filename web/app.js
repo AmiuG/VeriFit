@@ -1451,43 +1451,23 @@ function connectWindowDialog() {
 // which axis the dialog is currently editing
 let editingAxis = 'x';
 
+// a plausible example for each axis, shown greyed out in the empty boxes
+const AXIS_EXAMPLES = {
+  x: { label: 'Time since release', symbol: 't', unit: 's' },
+  y: { label: 'Height above ground', symbol: 'h', unit: 'm' }
+};
+
 function openAxisDialog(which) {
   editingAxis = which;
   byId('axisTitle').textContent = `Name the ${which} axis`;
+  byId('axisLabel').placeholder = AXIS_EXAMPLES[which].label;
+  byId('axisSymbol').placeholder = AXIS_EXAMPLES[which].symbol;
+  byId('axisUnit').placeholder = AXIS_EXAMPLES[which].unit;
   byId('axisLabel').value = axes[which].label;
   byId('axisSymbol').value = axes[which].symbol;
   byId('axisUnit').value = axes[which].unit;
-  renderAxisPreview();
   byId('axisDialog').showModal();
   byId('axisLabel').focus();
-}
-
-// a live sample of what the typing will produce, which says where each
-// box ends up without a paragraph explaining it
-function renderAxisPreview() {
-  const label = byId('axisLabel').value.trim();
-  const symbol = byId('axisSymbol').value.trim() || editingAxis;
-  const unit = byId('axisUnit').value.trim();
-  const title = label === '' ? '' : (unit === '' ? label : `${label} (${unit})`);
-  const heading = unit === '' ? symbol : `${symbol} (${unit})`;
-
-  const preview = byId('axisPreview');
-  preview.textContent = '';
-  addPreviewRow(preview, 'graph', title === '' ? 'no label' : title,
-                title === '');
-  addPreviewRow(preview, 'table', heading, false);
-}
-
-// built from real nodes rather than pasted-in html, so whatever is typed
-// stays plain text
-function addPreviewRow(preview, where, what, isEmpty) {
-  const caption = document.createElement('span');
-  caption.className = 'where';
-  caption.textContent = where;
-  const value = document.createElement('span');
-  value.className = isEmpty ? 'what none' : 'what';
-  value.textContent = what;
-  preview.append(caption, value);
 }
 
 function applyAxisNames(label, symbol, unit) {
@@ -1504,9 +1484,6 @@ function applyAxisNames(label, symbol, unit) {
 function connectAxisDialog() {
   byId('xHeader').addEventListener('click', () => openAxisDialog('x'));
   byId('yHeader').addEventListener('click', () => openAxisDialog('y'));
-  for (const id of ['axisLabel', 'axisSymbol', 'axisUnit']) {
-    byId(id).addEventListener('input', renderAxisPreview);
-  }
   byId('axisCancel').addEventListener('click',
                                      () => byId('axisDialog').close());
   byId('axisClear').addEventListener('click', () => applyAxisNames('', '', ''));

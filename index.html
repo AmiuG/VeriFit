@@ -8,7 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="web/style.css">
+<!-- the ?v= number is bumped whenever these files change, which is what
+     makes a browser fetch them again instead of reusing an old copy -->
+<link rel="stylesheet" href="web/style.css?v=3">
 </head>
 <body>
 
@@ -146,7 +148,6 @@
       <input type="text" id="axisUnit" placeholder="s" maxlength="12">
     </label>
   </div>
-  <p class="preview" id="axisPreview"></p>
   <div class="dialogButtons">
     <button id="axisClear">Clear</button>
     <span class="spacer"></span>
@@ -180,7 +181,7 @@
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js"></script>
-<script src="web/app.js"></script>
+<script src="web/app.js?v=3"></script>
 
 </body>
 </html>

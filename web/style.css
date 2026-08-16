@@ -498,7 +498,7 @@ dialog p { margin: 0 0 10px; font-size: 13.5px; }
 
 /* a small caps caption over its box, so the eye runs straight down the
    form instead of hunting along a line */
-.field { display: block; margin-bottom: 14px; }
+.field { display: block; margin-bottom: 16px; }
 
 .field > span {
   display: block;
@@ -507,7 +507,7 @@ dialog p { margin: 0 0 10px; font-size: 13.5px; }
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 5px;
+  margin-bottom: 7px;
 }
 
 .field input {
@@ -531,33 +531,7 @@ dialog p { margin: 0 0 10px; font-size: 13.5px; }
 /* symbol and unit are both short, so they share a line */
 .fieldRow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-/* shows the result rather than describing it */
-.preview {
-  margin: 2px 0 16px;
-  padding: 10px 12px;
-  background: var(--page);
-  border-radius: 8px;
-  display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
-  gap: 3px 10px;
-  font-size: 12.5px;
-  align-items: baseline;
-}
-
-.preview .where {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.preview .what {
-  color: var(--ink);
-  overflow-wrap: anywhere;
-}
-
-.preview .what.none { color: var(--muted); font-style: italic; }
+.dialogButtons { margin-top: 18px; }
 
 /* the x and y column headings double as buttons for naming the axes */
 .axisHeader {
