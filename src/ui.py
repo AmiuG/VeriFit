@@ -490,10 +490,39 @@ class ModelCards:
             height += 10 * len(wrapText(warning, ModelCards.wrapWidth)) + 4
         return height + 6
 
+    # the dataset's own cautions (too few points, repeated x-values) sit
+    # above the cards, because they qualify the whole ranking at once
+    def warningLines(self, analysisEngine):
+        if len(analysisEngine.results) == 0:
+            return []
+        lines = []
+        for warning in analysisEngine.dataset.getWarnings():
+            lines.extend(wrapText(warning, ModelCards.wrapWidth))
+        return lines
+
+    # how far the warning box pushes the cards down
+    def warningsHeight(self, analysisEngine):
+        lines = self.warningLines(analysisEngine)
+        if len(lines) == 0:
+            return 0
+        return 10 * len(lines) + 16
+
+    def drawWarnings(self, analysisEngine):
+        lines = self.warningLines(analysisEngine)
+        if len(lines) == 0:
+            return
+        top = self.panel.contentTop() + 6
+        drawRect(self.left - 4, top, self.width + 8, 10 * len(lines) + 10,
+                 fill=warningFill, border=panelBorder)
+        y = top + 8
+        for line in lines:
+            drawLabel(line, self.left + 4, y, size=9, align='left')
+            y += 10
+
     # (index, top, totalHeight) for every result
     def rowLayout(self, analysisEngine):
         layout = []
-        top = self.panel.contentTop() + 6
+        top = self.panel.contentTop() + 6 + self.warningsHeight(analysisEngine)
         for i in range(len(analysisEngine.results)):
             height = ModelCards.rowHeight
             if i == self.expandedIndex:
@@ -535,6 +564,7 @@ class ModelCards:
                       fill=mutedColor)
             return
 
+        self.drawWarnings(analysisEngine)
         bottom = self.panel.bottom - 8
         for index, top, height in self.rowLayout(analysisEngine):
             if top > bottom:
