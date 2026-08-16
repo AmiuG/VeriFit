@@ -247,9 +247,12 @@ class AnalysisEngine:
 
     def assignColorsAndVisibility(self):
         for i in range(len(self.results)):
-            self.results[i].colorIndex = i
+            result = self.results[i]
+            # the color follows the model itself rather than its rank, so a
+            # curve never changes color just because the ranking moved
+            result.colorIndex = self.candidates.index(result.model)
             # top three models are visible
-            self.results[i].isVisible = True if (i < 3) else False
+            result.isVisible = True if (i < 3) else False
 
     # detect if the best model and second model are technically tied
     # then, it will recommend whichever is simpler
