@@ -65,6 +65,12 @@ a browser can do:
               is uploaded anywhere; the numbers ride in the address.
     Image     saves the graph as a png for a lab report.
 
+Typing in the table: a cell is only taken as finished when you press
+enter or tab, or click away from it. Nothing is committed while you are
+still typing, so a half typed 25 is never read as a 2. Enter and tab
+step along the row and then down to the next one, shift with either
+steps back, and anything that is not a number puts the old value back.
+
 Mouse and keyboard on the website: click the graph to add a point, drag
 to pan, scroll to zoom. Click a model to open it, click its swatch to
 show or hide its curve, and click a row number in the table to leave
