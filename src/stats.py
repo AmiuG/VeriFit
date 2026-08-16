@@ -90,6 +90,27 @@ def chooseFoldCount(n):
     return 10
 
 
+# Decides which group each point belongs to for cross validation.
+#
+# The obvious way is to go down the rows and deal them out one by one,
+# but then the same numbers typed in a different order end up in
+# different groups and the score comes out different. Dealing them out
+# in order of x instead depends only on the data itself, so the answer
+# is the same however the rows were entered. It also spreads each group
+# across the whole range of x rather than letting one group land
+# entirely at one end.
+def foldNumbers(x_coords, y_coords, foldCount):
+    n = len(x_coords)
+    positions = list(range(n))
+    # y breaks a tie between points sharing an x, so nothing falls back
+    # on the row number
+    positions.sort(key = lambda i: (x_coords[i], y_coords[i]))
+    folds = [0] * n
+    for rank in range(n):
+        folds[positions[rank]] = rank % foldCount
+    return folds
+
+
 # k fold cross validated RMSE
 def crossValidatedRmse(model, x_coords, y_coords, foldCount = None):
     n = len(x_coords)
@@ -99,12 +120,13 @@ def crossValidatedRmse(model, x_coords, y_coords, foldCount = None):
         return None
 
     heldOutErrors = [] # contain residuals from test points
+    folds = foldNumbers(x_coords, y_coords, foldCount)
 
     for fold in range(foldCount):
         trainXs, trainYs = [], [] # data used to fit the model
         testXs, testYs = [], [] # data hidden from the model and used to evalute it
         for i in range(n):
-            if i % foldCount == fold:
+            if folds[i] == fold:
                 testXs.append(x_coords[i])
                 testYs.append(y_coords[i])
             else:
