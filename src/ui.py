@@ -11,6 +11,9 @@ shadowColor = rgb(226, 228, 232)
 buttonHover = rgb(238, 239, 242)
 tabHover = rgb(229, 229, 229)
 stripeFill = rgb(250, 250, 251)
+# used for headings only. Numbers and dense text stay in the default
+# font, which is easier to read at small sizes.
+displayFont = 'montserrat'
 titleFill = rgb(242, 242, 242)
 textColor = 'black'
 mutedColor = rgb(125, 125, 125)
@@ -71,8 +74,8 @@ class Panel:
         drawLine(self.left, self.top + Panel.titleHeight,
                  self.right, self.top + Panel.titleHeight, fill=panelBorder)
         drawLabel(self.title.upper(), self.left + 10,
-                  self.top + Panel.titleHeight / 2, size=11, bold=True,
-                  align='left', fill=rgb(70, 75, 82))
+                  self.top + Panel.titleHeight / 2, size=10, bold=True,
+                  align='left', fill=rgb(70, 75, 82), font=displayFont)
         drawRect(self.left, self.top, self.width, self.height,
                  fill=None, border=panelBorder)
 
@@ -584,8 +587,8 @@ class ModelCards:
         top = self.panel.contentTop() + 6
         drawRect(self.left - 4, top, self.width + 8, 10 * len(lines) + 20,
                  fill=selectFill, border=accentColor)
-        drawLabel('verdict', self.left + 4, top + 8, size=9, align='left',
-                  bold=True, fill=accentColor)
+        drawLabel('VERDICT', self.left + 4, top + 8, size=8, align='left',
+                  bold=True, fill=accentColor, font=displayFont)
         y = top + 18
         for line in lines:
             drawLabel(line, self.left + 4, y, size=9, align='left')
@@ -868,14 +871,15 @@ class HelpOverlay:
                  HelpOverlay.cardHeight, fill='white', border=panelBorder)
         x = self.left + 24
         y = self.top + 28
-        drawLabel('How VeriFit decides', x, y, size=14, bold=True,
-                  align='left')
+        drawLabel('How VeriFit decides', x, y, size=13, bold=True,
+                  align='left', font=displayFont)
         y += 22
         for line in HelpOverlay.about:
             drawLabel(line, x, y, size=11, align='left')
             y += 16
         y += 14
-        drawLabel('Shortcuts', x, y, size=14, bold=True, align='left')
+        drawLabel('Shortcuts', x, y, size=13, bold=True, align='left',
+                  font=displayFont)
         y += 22
         for keys, what in HelpOverlay.shortcuts:
             drawLabel(keys, x, y, size=11, bold=True, align='left')

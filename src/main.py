@@ -368,13 +368,16 @@ def drawHeader(app):
     drawRect(0, 0, windowWidth, headerHeight, fill='white')
     drawLine(0, headerHeight, windowWidth, headerHeight,
              fill=ui.panelBorder, lineWidth=1)
-    # the exclamation mark carries the accent color, which is the only
-    # place the title is not plain black
-    drawLabel('VeriFit', margin, 15, size=21, bold=True, align='left')
-    drawLabel('!', margin + 62, 15, size=21, bold=True, align='left',
-              fill=ui.accentColor)
+    # the exclamation mark carries the accent color, and is the only part
+    # of the title that is not near black. The name ends exactly where the
+    # mark begins, so the two always meet however wide the font renders.
+    joinX = margin + 78
+    drawLabel('VeriFit', joinX, 16, size=21, bold=True, align='right',
+              fill=rgb(25, 30, 38), font=ui.displayFont)
+    drawLabel('!', joinX, 16, size=21, bold=True, align='left',
+              fill=ui.accentColor, font=ui.displayFont)
     drawLabel('fitting data is not the same as predicting it',
-              margin + 82, 17, size=11, align='left', italic=True,
+              joinX + 24, 18, size=11, align='left', italic=True,
               fill=ui.mutedColor)
     for button in app.buttons:
         button.draw(pressed=(button is app.pressedButton),
