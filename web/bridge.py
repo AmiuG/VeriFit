@@ -121,6 +121,15 @@ def analyze(pointsJson):
     return json.dumps(describe())
 
 
+# a whole new dataset starts over, so the top three curves are shown
+# again rather than whatever was being shown for the last one. The
+# desktop app does the same thing when a sample is loaded.
+def reset():
+    global session
+    session = Session()
+    return json.dumps(True)
+
+
 # The curve is worked out here rather than in the browser, so that the
 # x offset and the log space fits stay a detail of the engine. Where a
 # model has no value, such as a power model at x below zero, the line
