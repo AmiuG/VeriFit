@@ -309,7 +309,7 @@ def testDatasetChecks():
     print('Passed!')
 
 
-# the same noisy straight line the app's Sample button loads
+# the same noisy straight line as the app's Tie sample
 sampleXs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 sampleYs = [2.4, 5.1, 6.2, 9.4, 10.1, 13.4, 14.0, 17.6, 18.1, 21.4, 22.2, 25.6]
 
@@ -495,6 +495,34 @@ def testVerdict():
     print('Passed!')
 
 
+def testSampleDatasets():
+    print('Testing the sample datasets...', end='')
+    byLabel = {}
+    for label, hint, xs, ys in dataset.samples:
+        analysis = makeEngine(xs, ys)
+        analysis.analyze()
+        byLabel[label] = analysis
+
+    # each sample was picked to show one thing off, so pin that down
+    assert(byLabel['Line'].results[0].model.name == 'Linear')
+    names = [name for name, reason in byLabel['Line'].unavailable]
+    assert('Exponential' in names and 'Power' in names)
+
+    assert(byLabel['Curve'].results[0].model.name == 'Quadratic')
+    assert(byLabel['Growth'].results[0].model.name == 'Exponential')
+
+    # the outlier sample: the wild point gets flagged, and the sweep
+    # shows the winner depends on that single row
+    outlier = byLabel['Outlier']
+    assert(outlier.results[0].outlierIndex == 3)
+    winner, report = outlier.influenceSweep()
+    flips = [entry.row for entry in report if entry.changesWinner]
+    assert(3 in flips)
+
+    assert('cannot tell them apart' in byLabel['Tie'].verdict())
+    print('Passed!')
+
+
 def testColorsAndVisibility():
     print('Testing stable colors and visibility memory...', end='')
     analysis = makeEngine(sampleXs, sampleYs)
@@ -540,6 +568,7 @@ def main():
     testFormatNumber()
     testPowerStandardErrors()
     testVerdict()
+    testSampleDatasets()
     testColorsAndVisibility()
     print('All tests passed!')
 
