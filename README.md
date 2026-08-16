@@ -48,7 +48,9 @@ Keyboard shortcuts
          q        show the R2 vs CV tab
          h        open the help overlay (any key closes it)
          1 - 7    expand the model card at that rank
-         up/down  scroll the data table
+         arrows   pan the graph window (while a cell is being
+                  edited, up/down scroll the table instead)
+         + / -    zoom the graph in and out
 
 Mouse controls
 --------------

@@ -725,9 +725,11 @@ class HelpOverlay:
         ('s', 'load the next sample dataset'),
         ('u', 'undo the last data change'),
         ('f', 'reframe the graph around the data'),
+        ('arrows', 'pan the graph window'),
+        ('+ / -', 'zoom the graph in and out'),
         ('r p v i q', 'pick the tab under the graph'),
         ('1 - 7', 'expand the model card at that rank'),
-        ('up / down', 'scroll the data table'),
+        ('up / down', 'scroll the table while editing'),
         ('h', 'open and close this help'),
     ]
 
