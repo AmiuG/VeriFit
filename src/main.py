@@ -368,9 +368,14 @@ def drawHeader(app):
     drawRect(0, 0, windowWidth, headerHeight, fill='white')
     drawLine(0, headerHeight, windowWidth, headerHeight,
              fill=ui.panelBorder, lineWidth=1)
-    drawLabel('VeriFit!', margin, 14, size=18, bold=True, align='left')
+    # the exclamation mark carries the accent color, which is the only
+    # place the title is not plain black
+    drawLabel('VeriFit', margin, 15, size=21, bold=True, align='left')
+    drawLabel('!', margin + 62, 15, size=21, bold=True, align='left',
+              fill=ui.accentColor)
     drawLabel('fitting data is not the same as predicting it',
-              margin + 96, 16, size=11, align='left', fill=ui.mutedColor)
+              margin + 82, 17, size=11, align='left', italic=True,
+              fill=ui.mutedColor)
     for button in app.buttons:
         button.draw(pressed=(button is app.pressedButton),
                     hovered=button.contains(app.mouseX, app.mouseY))

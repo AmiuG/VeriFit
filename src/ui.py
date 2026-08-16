@@ -68,8 +68,11 @@ class Panel:
                  fill=shadowColor)
         drawRect(self.left, self.top, self.width, self.height, fill=panelFill)
         drawRect(self.left, self.top, self.width, Panel.titleHeight, fill=titleFill)
-        drawLabel(self.title, self.left + 10, self.top + Panel.titleHeight / 2,
-                  size=12, bold=True, align='left', fill=textColor)
+        drawLine(self.left, self.top + Panel.titleHeight,
+                 self.right, self.top + Panel.titleHeight, fill=panelBorder)
+        drawLabel(self.title.upper(), self.left + 10,
+                  self.top + Panel.titleHeight / 2, size=11, bold=True,
+                  align='left', fill=rgb(70, 75, 82))
         drawRect(self.left, self.top, self.width, self.height,
                  fill=None, border=panelBorder)
 
