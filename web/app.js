@@ -113,7 +113,9 @@ async function boot() {
 
     show('booting', false);
     show('app', true);
+    // now that the panels have a real width, draw them for real
     drawGraph();
+    renderTab();
   } catch (error) {
     reportFailure(error);
   }
@@ -171,20 +173,33 @@ function undo() {
 // samples and the top bar
 // ---------------------------------------------------------------
 
+// the Sample button opens a list of the built in datasets, and the one
+// currently loaded stays marked, so you can see where you are
 function buildSampleButtons() {
-  const holder = byId('sampleButtons');
-  holder.innerHTML = '';
+  const menu = byId('sampleMenu');
+  menu.innerHTML = '';
   samples.forEach((sample, index) => {
     const button = document.createElement('button');
-    button.textContent = sample.label;
-    button.title = sample.hint;
-    button.addEventListener('click', () => loadSample(index));
-    holder.appendChild(button);
+    button.innerHTML = `${sample.label}<span class="hint">${sample.hint}</span>`;
+    button.addEventListener('click', () => {
+      menu.hidden = true;
+      loadSample(index);
+    });
+    menu.appendChild(button);
+  });
+
+  byId('sampleButton').addEventListener('click', event => {
+    event.stopPropagation();
+    menu.hidden = !menu.hidden;
+  });
+  // a click anywhere else puts the menu away
+  document.addEventListener('click', event => {
+    if (!menu.hidden && !menu.contains(event.target)) menu.hidden = true;
   });
 }
 
 function markActiveSample(index) {
-  document.querySelectorAll('#sampleButtons button').forEach((button, i) => {
+  document.querySelectorAll('#sampleMenu button').forEach((button, i) => {
     button.classList.toggle('active', i === index);
   });
 }
@@ -594,12 +609,22 @@ function drawGraph() {
     line(ctx, PAD.left, py, m.width - PAD.right, py);
   }
 
+  // everything that follows the data is held inside the plot area, so a
+  // steep curve or a wide band cannot spill over the axis labels
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(PAD.left, PAD.top,
+           m.width - PAD.left - PAD.right,
+           m.height - PAD.top - PAD.bottom);
+  ctx.clip();
   if (latest) {
     drawBand(ctx, m);
     drawCurves(ctx, m);
   }
   drawPoints(ctx, m);
   if (mode === 'predict' && predictX !== null) drawPredictMarker(ctx, m);
+  ctx.restore();
+
   drawTickLabels(ctx, m, xStep, yStep);
 
   ctx.strokeStyle = '#cdd1d6';
@@ -702,8 +727,8 @@ function drawPoints(ctx, m) {
   points.forEach((point, index) => {
     const px = toScreenX(point.x, m);
     const py = toScreenY(point.y, m);
-    if (px < PAD.left || px > m.width - PAD.right) return;
-    if (py < PAD.top || py > m.height - PAD.bottom) return;
+    // the clip region trims anything hanging over the edge, so a point
+    // half out of view still shows the half that is inside
     const result = selectedResult();
     const isOutlier = result && result.outlierIndex !== null &&
                       activeIndexOf(index) === result.outlierIndex;
@@ -818,7 +843,9 @@ function connectGraph() {
     drawGraph();
   }, { passive: false });
 
-  window.addEventListener('resize', () => drawGraph());
+  // the strip under the graph is a canvas too, so it has to be redrawn
+  // at the new width rather than stretched
+  window.addEventListener('resize', () => { drawGraph(); renderTab(); });
 }
 
 
@@ -880,7 +907,9 @@ function renderTab() {
 // a small canvas that lines up with the graph above it
 function stripCanvas(panel, height = 104) {
   const canvas = document.createElement('canvas');
-  const width = panel.clientWidth - 28;
+  // a hidden panel measures zero, which would make an invisible canvas,
+  // so fall back to a sensible width until the layout is real
+  const width = Math.max(240, panel.clientWidth - 28);
   const ratio = window.devicePixelRatio || 1;
   canvas.width = width * ratio;
   canvas.height = height * ratio;
