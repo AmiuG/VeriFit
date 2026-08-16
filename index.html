@@ -15,11 +15,16 @@
 <header class="topbar">
   <h1>VeriFit<span class="accent">!</span></h1>
   <p class="tagline">fitting data is not the same as predicting it</p>
-  <div class="samples" id="sampleButtons"></div>
+  <div class="actions">
+    <div class="samples" id="sampleButtons"></div>
+    <button id="dataButton" title="paste or upload your own numbers">Data</button>
+    <button id="shareButton" title="copy a link that carries this dataset">Share</button>
+    <button id="imageButton" title="save the graph as an image">Image</button>
+    <button id="helpButton" title="how to read the ranking">?</button>
+  </div>
 </header>
 
 <main>
-  <!-- shown while python is still starting up -->
   <section id="booting" class="card booting">
     <div class="spinner"></div>
     <p id="bootStatus">Starting up…</p>
@@ -32,23 +37,87 @@
     <pre id="failureText"></pre>
   </section>
 
-  <section id="app" hidden>
-    <div class="columns">
-      <div class="card graphCard">
-        <h2>Graph</h2>
-        <canvas id="graph" width="640" height="420"></canvas>
-      </div>
+  <div id="app" class="columns" hidden>
 
-      <div class="card modelsCard">
-        <h2>Models</h2>
-        <div id="verdict" class="verdict"></div>
-        <div id="warnings"></div>
-        <ol id="ranking" class="ranking"></ol>
-        <div id="unavailable" class="muted small"></div>
+    <section class="card dataCard">
+      <h2>Data</h2>
+      <div class="tableWrap">
+        <table id="dataTable">
+          <thead>
+            <tr><th class="markCol">#</th><th>x</th><th>y</th><th></th></tr>
+          </thead>
+          <tbody id="dataBody"></tbody>
+        </table>
       </div>
-    </div>
-  </section>
+      <p class="tableFooter muted small" id="tableFooter"></p>
+      <div class="rowButtons">
+        <button data-action="undo">Undo</button>
+        <button data-action="includeAll">Include all</button>
+        <button data-action="clear">Clear</button>
+      </div>
+    </section>
+
+    <section class="card graphCard">
+      <h2>Graph
+        <button id="reframeButton" class="tiny" title="frame the window around the data">Reframe</button>
+      </h2>
+      <canvas id="graph"></canvas>
+      <p class="muted small hint">Click the graph to add a point. Drag to pan, scroll to zoom.</p>
+      <div class="tabs" id="tabs"></div>
+      <div class="tabPanel" id="tabPanel"></div>
+    </section>
+
+    <section class="card modelsCard">
+      <h2>Models</h2>
+      <div id="verdict" class="verdict"></div>
+      <div id="warnings"></div>
+      <ol id="ranking" class="ranking"></ol>
+      <div id="unavailable" class="muted small"></div>
+    </section>
+
+  </div>
 </main>
+
+<dialog id="dataDialog">
+  <h3>Your own data</h3>
+  <p class="muted small">Paste two columns — commas, tabs or spaces all
+    work. A header row is ignored.</p>
+  <textarea id="csvText" rows="10" spellcheck="false"
+            placeholder="x, y&#10;1, 2.4&#10;2, 5.1&#10;3, 6.2"></textarea>
+  <p id="csvMessage" class="small"></p>
+  <div class="dialogButtons">
+    <label class="fileLabel">Upload a file
+      <input type="file" id="csvFile" accept=".csv,.tsv,.txt">
+    </label>
+    <span class="spacer"></span>
+    <button id="csvCancel">Cancel</button>
+    <button id="csvLoad" class="primary">Use this data</button>
+  </div>
+</dialog>
+
+<dialog id="helpDialog">
+  <h3>How VeriFit decides</h3>
+  <p>Models are ranked by how well they predict points they were not
+     fitted on, not by how closely they hug the points they already saw.
+     That is why a high R² can still lose: a flexible model can memorise
+     noise instead of finding the pattern underneath it.</p>
+  <p>The number beside each model is its cross-validated error, so
+     smaller is better. Open a model to see its equation, how much of
+     the AICc support it holds, and any warning about the shape of its
+     misses.</p>
+  <p>The tabs under the graph are there to help you doubt the winner:
+     <strong>Residuals</strong> shows what the model missed,
+     <strong>Predict</strong> shows how far apart the models drift once
+     you leave the data, <strong>Sensitivity</strong> lets you push the
+     parameters within their uncertainty, <strong>Influence</strong>
+     removes each point in turn to see whether the answer depends on one
+     of them, and <strong>R² vs CV</strong> shows where the flattering
+     statistic and the honest one disagree.</p>
+  <div class="dialogButtons">
+    <span class="spacer"></span>
+    <button id="helpClose" class="primary">Close</button>
+  </div>
+</dialog>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js"></script>
 <script src="web/app.js"></script>
