@@ -617,7 +617,7 @@ class ModelCards:
             drawLabel('No model fitted yet.', self.left,
                       self.panel.contentTop() + 16, size=11, align='left',
                       fill=mutedColor)
-            drawLabel('Add at least 2 points.', self.left,
+            drawLabel('Add points, or try a sample above.', self.left,
                       self.panel.contentTop() + 32, size=11, align='left',
                       fill=mutedColor)
             return
@@ -960,10 +960,10 @@ class InfluencePanel:
                      InfluencePanel.barWidth, barHeight, fill=color)
             if entry.changesWinner:
                 drawLabel(str(entry.row + 1), pixelX,
-                          self.barsBottom - barHeight - 7, size=8,
+                          self.barsBottom - barHeight - 7, size=9,
                           fill=influenceAlertColor)
         drawLabel('how much the winner\'s error moves when each point is dropped',
-                  self.left, self.barsBottom + 7, size=8, align='left',
+                  self.left, self.barsBottom + 7, size=9, align='left',
                   fill=mutedColor)
 
 
@@ -1241,7 +1241,7 @@ class WindowControls:
         else:
             drawLabel('tab moves on, enter applies, esc closes',
                       self.left + WindowControls.padding,
-                      self.top + self.height - 4, size=8, align='left',
+                      self.top + self.height - 4, size=9, align='left',
                       fill=mutedColor)
 
     def drawBox(self, graph, index):

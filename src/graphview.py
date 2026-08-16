@@ -343,9 +343,12 @@ class GraphView:
                  fill=None, border=borderColor)
 
     def drawEmptyMessage(self):
-        drawLabel('Add at least 2 points to see a fit.',
-                  self.left + self.width / 2, self.top + self.height / 2,
-                  size=14, fill=excludedColor)
+        middleX = self.left + self.width / 2
+        middleY = self.top + self.height / 2
+        drawLabel('Click anywhere on the graph to add points,',
+                  middleX, middleY - 10, size=14, fill=excludedColor)
+        drawLabel('or press s to tour the sample datasets.',
+                  middleX, middleY + 10, size=14, fill=excludedColor)
 
 
     def draw(self, data, analysisEngine = None):
