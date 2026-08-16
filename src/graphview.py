@@ -9,7 +9,15 @@ minorGridColor = rgb(241, 241, 241)
 majorGridColor = rgb(224, 224, 224)
 tickLabelColor = rgb(95, 95, 95)
 excludedColor = 'gray'
-curveColors = ['blue', 'red', 'green', 'purple', 'orange', 'brown', 'black']
+# the Okabe-Ito palette, chosen so the curves stay tellable-apart for
+# colorblind users. The order matches makeAllModels.
+curveColors = [rgb(0, 114, 178),    # linear: blue
+               rgb(213, 94, 0),     # quadratic: vermillion
+               rgb(0, 158, 115),    # cubic: green
+               rgb(204, 121, 167),  # exponential: pink
+               rgb(230, 159, 0),    # power: orange
+               rgb(86, 180, 233),   # logarithmic: sky blue
+               rgb(0, 0, 0)]        # flatline: black
 extraCurveColor = 'gray'
 residualDotColor = rgb(60, 60, 60)
 residualStemColor = rgb(200, 200, 200)
