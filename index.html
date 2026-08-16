@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
 <!-- the ?v= number is bumped whenever these files change, which is what
      makes a browser fetch them again instead of reusing an old copy -->
-<link rel="stylesheet" href="web/style.css?v=5">
+<link rel="stylesheet" href="web/style.css?v=6">
 </head>
 <body>
 
@@ -26,7 +26,7 @@
     <button id="dataButton" title="paste or upload your own numbers">Data</button>
     <button id="shareButton" title="copy a link that carries this dataset">Share</button>
     <button id="imageButton" title="save the graph as an image">Image</button>
-    <button id="helpButton" title="how to read the ranking">?</button>
+    <button id="helpButton" title="how to read the ranking">Help</button>
   </div>
 </header>
 
@@ -165,22 +165,41 @@
 
 <dialog id="helpDialog">
   <h3>How VeriFit decides</h3>
-  <p>Models are ranked by how well they predict points they were not
-     fitted on, not by how closely they hug the points they already saw.
-     That is why a high R² can still lose: a flexible model can memorise
-     noise instead of finding the pattern underneath it.</p>
-  <p>The number beside each model is its cross-validated error, so
-     smaller is better. Open a model to see its equation, how much of
-     the AICc support it holds, and any warning about the shape of its
-     misses.</p>
-  <p>The tabs under the graph are there to help you doubt the winner:
-     <strong>Residuals</strong> shows what the model missed,
-     <strong>Predict</strong> shows how far apart the models drift once
-     you leave the data, <strong>Sensitivity</strong> lets you push the
-     parameters within their uncertainty, <strong>Influence</strong>
-     removes each point in turn to see whether the answer depends on one
-     of them, and <strong>R² vs CV</strong> shows where the flattering
-     statistic and the honest one disagree.</p>
+
+  <p>Models are ranked by how well they <strong>predict new
+     points</strong>, rather than how well they <strong>fit the given
+     data points</strong>.</p>
+
+  <p>The number next to each model is the <strong>cross-validated
+     RMSE</strong>. VeriFit! calculates this value by temporarily hiding
+     some points, fitting the model to the remaining points, and then
+     checking how accurately the model predicts the hidden points. A
+     <strong>smaller</strong> cross-validated RMSE value means the model
+     was <strong>better at predicting unseen data points</strong>.</p>
+
+  <p>VeriFit! provides you with more information once you click a model.
+     You can see its <strong>equation</strong>, its <strong>AICc
+     weight</strong>, which indicates how likely the model is the best
+     choice among other models, and warnings about its
+     <strong>residuals</strong>, the differences between the model's
+     predictions and the actual data.</p>
+
+  <p>The tabs below the graph let you test whether the winning model is
+     actually trustworthy. <strong>Residuals</strong> shows the
+     difference between the model's prediction and the actual data.
+     <strong>Predict</strong> gives you the predicted value of the top
+     three models at your desired point. <strong>Sensitivity</strong>
+     lets you change the model's parameters. <strong>Influence</strong>
+     tells you which points significantly affect the ranking.
+     <strong>R² vs CV</strong> shows you the ranking based on the R²
+     value and the CV-RMSE value.</p>
+
+  <p>VeriFit! is <strong>not meant to find the best model for
+     you</strong>. It is meant to help you understand <strong>why a
+     model is chosen</strong>, <strong>where it could fail</strong>, and
+     <strong>how much you should actually trust</strong> its
+     prediction.</p>
+
   <div class="dialogButtons">
     <span class="spacer"></span>
     <button id="helpClose" class="primary">Close</button>
@@ -188,7 +207,7 @@
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js"></script>
-<script src="web/app.js?v=5"></script>
+<script src="web/app.js?v=6"></script>
 
 </body>
 </html>
