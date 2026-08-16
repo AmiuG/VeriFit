@@ -147,9 +147,20 @@ class TabBar:
                 fill = tabIdleFill
             drawRect(left, self.top, self.tabWidth, TabBar.height,
                      fill=fill, border=panelBorder)
+            # an accent stripe along the top marks the open tab
+            if isActive:
+                drawRect(left, self.top, self.tabWidth, 2, fill=accentColor)
             drawLabel(label, left + self.tabWidth / 2,
                       self.top + TabBar.height / 2, size=11,
                       bold=isActive, fill=textColor if isActive else mutedColor)
+        # erase the seam under the open tab so the tabs and the panel
+        # below them read as one piece
+        for i in range(len(self.tabs)):
+            if self.tabs[i][1] == activeKey:
+                left = self.left + i * self.tabWidth
+                drawLine(left + 1, self.top + TabBar.height,
+                         left + self.tabWidth - 1, self.top + TabBar.height,
+                         fill=tabActiveFill, lineWidth=2)
 
 class Slider:
     trackHeight = 4

@@ -67,14 +67,17 @@ def onAppStart(app):
 
     app.influence = None
 
-    app.residuals = graphview.ResidualPlot(stripLeft, stripTop + 6,
-                                           stripWidth, stripHeight - 12)
-    app.predict = ui.PredictPanel(stripLeft, stripTop, stripWidth, stripHeight)
-    app.sensitivity = ui.SensitivityPanel(stripLeft, stripTop, stripWidth,
+    # the residual box starts flush against the tabs, so the two read as
+    # one tabbed panel instead of two floating rectangles
+    app.residuals = graphview.ResidualPlot(stripLeft, stripTop,
+                                           stripWidth, stripHeight)
+    app.predict = ui.PredictPanel(stripLeft, stripTop + 6, stripWidth,
+                                  stripHeight)
+    app.sensitivity = ui.SensitivityPanel(stripLeft, stripTop + 6, stripWidth,
                                           stripHeight)
-    app.influencePanel = ui.InfluencePanel(stripLeft, stripTop, stripWidth,
+    app.influencePanel = ui.InfluencePanel(stripLeft, stripTop + 6, stripWidth,
                                            stripHeight)
-    app.rsquaredPanel = ui.RSquaredPanel(stripLeft, stripTop, stripWidth,
+    app.rsquaredPanel = ui.RSquaredPanel(stripLeft, stripTop + 6, stripWidth,
                                          stripHeight)
 
     app.buttons = makeButtons()
