@@ -147,6 +147,19 @@ function remember() {
   if (undoStack.length > 60) undoStack.shift();
 }
 
+// While a cell is being typed into, the state before the first keystroke
+// is held here and only filed away once something really changes. Simply
+// clicking through cells therefore does not fill the undo stack with
+// copies of the same data.
+let pendingUndo = null;
+
+function rememberOnce() {
+  if (pendingUndo === null) return;
+  undoStack.push(pendingUndo);
+  if (undoStack.length > 60) undoStack.shift();
+  pendingUndo = null;
+}
+
 function undo() {
   if (undoStack.length === 0) return;
   points = undoStack.pop();
@@ -230,12 +243,16 @@ function buildCell(point, index, key) {
     const parsed = parseNumber(input.value);
     input.classList.toggle('bad', parsed === null);
     if (parsed === null) return;
+    rememberOnce();
     points[index][key] = parsed;
     // the table is left alone so the cursor stays where it is
     analyze({ keepTable: true });
     markActiveSample(-1);
   });
-  input.addEventListener('focus', () => remember());
+  input.addEventListener('focus', () => {
+    pendingUndo = JSON.parse(JSON.stringify(points));
+  });
+  input.addEventListener('blur', () => { pendingUndo = null; });
   cell.appendChild(input);
   return cell;
 }
