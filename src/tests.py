@@ -9,6 +9,7 @@ import math
 import linalg
 import stats
 import models
+import dataset
 
 
 def almostEqual(a, b, epsilon = 10 ** -6):
@@ -250,6 +251,63 @@ def testStandardErrors():
     print('Passed!')
 
 
+def testParseNumber():
+    print('Testing parseNumber...', end='')
+    assert(dataset.parseNumber('3.5') == (True, 3.5))
+    assert(dataset.parseNumber('  -2 ') == (True, -2.0))
+    assert(dataset.parseNumber('abc')[0] == False)
+    assert(dataset.parseNumber('')[0] == False)
+    assert(dataset.parseNumber('inf')[0] == False)
+    assert(dataset.parseNumber('nan')[0] == False)
+    print('Passed!')
+
+
+def testDatasetEditing():
+    print('Testing dataset editing and undo...', end='')
+    data = dataset.Dataset()
+    data.addPoint(1, 2)
+    data.addPoint(3, 4)
+    assert(data.getPointCount() == 2)
+    data.editPoint(0, 5, 6)
+    assert(data.points[0].x == 5 and data.points[0].y == 6)
+    assert(data.undo())
+    assert(data.points[0].x == 1)
+    data.toggleExcluded(1)
+    assert(data.getRawXs() == [1])
+    data.includeAll()
+    assert(data.getRawXs() == [1, 3])
+    data.clear()
+    assert(data.getPointCount() == 0)
+    assert(data.undo())
+    assert(data.getPointCount() == 2)
+    print('Passed!')
+
+
+def testOffset():
+    print('Testing the x offset...', end='')
+    small = dataset.Dataset([1, 2, 3], [1, 2, 3])
+    assert(small.usesOffset() == False)
+
+    years = dataset.Dataset([2010, 2015, 2020], [1, 2, 3])
+    assert(years.usesOffset())
+    assert(years.xOffset == 2015)
+    assert(years.getFitXs() == [-5, 0, 5])
+    print('Passed!')
+
+
+def testDatasetChecks():
+    print('Testing extrapolation and warnings...', end='')
+    data = dataset.Dataset([1, 2, 3, 4, 5], [1, 2, 3, 4, 5])
+    assert(data.isExtrapolation(3) == False)
+    assert(data.isExtrapolation(6))
+    assert(dataset.Dataset().isExtrapolation(1))
+
+    assert(len(dataset.Dataset().getWarnings()) == 1)
+    few = dataset.Dataset([1, 2, 3], [1, 2, 3])
+    assert(len(few.getWarnings()) > 0)
+    print('Passed!')
+
+
 def main():
     testLinalg()
     testPolynomialModels()
@@ -260,6 +318,10 @@ def main():
     testInformationScores()
     testResidualPatterns()
     testStandardErrors()
+    testParseNumber()
+    testDatasetEditing()
+    testOffset()
+    testDatasetChecks()
     print('All tests passed!')
 
 
