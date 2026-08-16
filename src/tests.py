@@ -523,6 +523,47 @@ def testSampleDatasets():
     print('Passed!')
 
 
+def testPredictionBands():
+    print('Testing prediction bands...', end='')
+    # a perfect line has zero noise, so the band collapses onto the line
+    xs = [1, 2, 3, 4, 5, 6]
+    linear = models.LinearModel()
+    linear.fit(xs, [2 * x + 1 for x in xs])
+    setup = stats.bandSetup(linear, xs, [2 * x + 1 for x in xs])
+    low, high = stats.predictionBand(linear, setup, 4)
+    assert(almostEqual(low, 9) and almostEqual(high, 9))
+
+    # noisy data: the band brackets the prediction, and it must be wider
+    # far outside the data than at the middle of it
+    ys = [2.4, 5.1, 6.2, 9.4, 10.1, 13.4]
+    linear = models.LinearModel()
+    linear.fit(xs, ys)
+    setup = stats.bandSetup(linear, xs, ys)
+    low, high = stats.predictionBand(linear, setup, 3.5)
+    guess = linear.predict(3.5)
+    assert(low < guess < high)
+    farLow, farHigh = stats.predictionBand(linear, setup, 20)
+    assert(farHigh - farLow > high - low)
+
+    # a log-space fit gets a multiplicative band that cannot cross zero
+    expo = models.ExponentialModel()
+    growthYs = [6.1, 7.4, 11.5, 14.9, 22.1, 29.6]
+    expo.fit(xs, growthYs)
+    setup = stats.bandSetup(expo, xs, growthYs)
+    low, high = stats.predictionBand(expo, setup, 3)
+    assert(0 < low < expo.predict(3) < high)
+
+    # the engine carries the band, and a hand adjustment takes it away
+    analysis = makeEngine(sampleXs, sampleYs)
+    analysis.analyze()
+    result = analysis.results[0]
+    assert(analysis.bandAt(result, 5) is not None)
+    result.model.setParams(list(result.model.params))
+    analysis.rescoreAdjusted(result)
+    assert(analysis.bandAt(result, 5) is None)
+    print('Passed!')
+
+
 def testColorsAndVisibility():
     print('Testing stable colors and visibility memory...', end='')
     analysis = makeEngine(sampleXs, sampleYs)
@@ -569,6 +610,7 @@ def main():
     testPowerStandardErrors()
     testVerdict()
     testSampleDatasets()
+    testPredictionBands()
     testColorsAndVisibility()
     print('All tests passed!')
 
