@@ -3,6 +3,9 @@ import dataset
 
 panelFill = rgb(255, 255, 255)
 panelBorder = rgb(205, 205, 205)
+# the one accent color, used sparingly so it always means "look here"
+accentColor = rgb(0, 114, 178)
+accentPressed = rgb(0, 90, 145)
 titleFill = rgb(242, 242, 242)
 textColor = 'black'
 mutedColor = rgb(125, 125, 125)
@@ -75,7 +78,16 @@ class Button:
         return (self.left <= mouseX <= self.left + self.width and
                 self.top <= mouseY <= self.top + self.height)
 
-    def draw(self, enabled = True, pressed = False):
+    def draw(self, enabled = True, pressed = False, primary = False):
+        # a primary button is filled with the accent color, so the one
+        # action a new user needs stands out from the gray ones
+        if primary:
+            drawRect(self.left, self.top, self.width, self.height,
+                     fill=accentPressed if pressed else accentColor)
+            drawLabel(self.label, self.left + self.width / 2,
+                      self.top + self.height / 2, size=11, bold=True,
+                      fill='white')
+            return
         fill = buttonDown if pressed else buttonFill
         drawRect(self.left, self.top, self.width, self.height,
                  fill=fill, border=panelBorder)
@@ -520,9 +532,9 @@ class ModelCards:
             return
         top = self.panel.contentTop() + 6
         drawRect(self.left - 4, top, self.width + 8, 10 * len(lines) + 20,
-                 fill=selectFill)
+                 fill=selectFill, border=accentColor)
         drawLabel('verdict', self.left + 4, top + 8, size=9, align='left',
-                  bold=True)
+                  bold=True, fill=accentColor)
         y = top + 18
         for line in lines:
             drawLabel(line, self.left + 4, y, size=9, align='left')
@@ -640,6 +652,8 @@ class ModelCards:
         if index == self.expandedIndex:
             drawRect(self.left - 4, top, self.width + 8,
                      ModelCards.rowHeight, fill=selectFill)
+            drawRect(self.left - 4, top, 3, ModelCards.rowHeight,
+                     fill=accentColor)
 
         # a filled swatch means the curve is on the graph, hollow means off
         size = ModelCards.swatchSize
@@ -744,7 +758,7 @@ class SampleMenu:
         return 'closed'
 
     def drawButton(self, isPressed = False):
-        self.button.draw(pressed=(self.isOpen or isPressed))
+        self.button.draw(pressed=(self.isOpen or isPressed), primary=True)
 
     # drawn late in redrawAll so the open menu sits above the panels
     def drawMenu(self, activeIndex):
