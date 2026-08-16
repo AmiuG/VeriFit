@@ -37,7 +37,8 @@ against answers worked out by hand. It does not need cmu_graphics:
 
 Keyboard shortcuts
 ------------------
-         s        load the sample dataset
+         s        load the next sample dataset (there are five,
+                  each showing off one thing the ranking can do)
          u        undo the last data change
          f        reframe the graph around the data
          r        show the Residuals tab
