@@ -20,6 +20,8 @@ How to run
 1. Put all eight .py files in the same folder:
        main.py, ui.py, graphview.py, engine.py, stats.py,
        models.py, dataset.py, linalg.py
+   tests.py and experiment.py are optional extras that check the math
+   and the claim behind it.
 2. Run main.py.
    
 Libraries
@@ -27,6 +29,73 @@ Libraries
 cmu_graphics is the only library that needs to be installed:
 
     pip install cmu-graphics
+
+Does ranking by prediction actually work?
+-----------------------------------------
+VeriFit claims that ranking models by cross-validated error finds the
+right equation more often than ranking them by R squared. experiment.py
+tests that claim rather than assuming it. It builds data from an
+equation it already knows, hides the equation, and checks which rule
+points back at it:
+
+    python3 src/experiment.py
+
+Every setting runs 400 times from one fixed seed, so the numbers below
+can be reproduced exactly. Two of the six tables:
+
+    12 points, noise added on top
+    true equation   CV names it  or admits a tie  R2 names it  R2 says cubic
+    Linear                  74%              92%           0%           100%
+    Quadratic               79%              98%           0%           100%
+    Exponential             49%              69%           8%            92%
+    Logarithmic             88%              98%          57%            43%
+    Power                   16%              24%           0%           100%
+    average                 61%              76%          13%
+
+    30 points, noise multiplied in
+    true equation   CV names it  or admits a tie  R2 names it  R2 says cubic
+    Linear                  69%              81%           0%           100%
+    Quadratic               79%              94%           0%           100%
+    Exponential             78%              86%          18%            82%
+    Logarithmic             85%              92%          38%            62%
+    Power                   72%              82%           0%           100%
+    average                 77%              87%          11%
+
+What the study shows:
+
+1. Cross-validation names the true equation 46% to 77% of the time
+   depending on the conditions. R squared manages 5% to 13%.
+2. R squared picks the cubic almost every time, whatever made the data.
+   That is the whole problem in one column: the cubic has the most
+   parameters, so it always fits the points it was given best, and R
+   squared rewards exactly that.
+3. When cross-validation does not name the true equation, it usually
+   says the top two are too close to call, and the true equation is
+   one of them. Counting those, the app is right or honestly uncertain
+   76% to 87% of the time. Being unsure out loud is not the same kind
+   of mistake as being confidently wrong.
+
+Where it struggles, and why
+---------------------------
+The study also found two real limits, which are worth stating plainly.
+
+Power data is hard. Over the x range tested, y = 2x^1.5 and a quadratic
+are nearly the same curve, so cross-validation picks the quadratic most
+of the time. This is less a failure of the scoring rule than a fact
+about the data: with points only over that stretch, the two equations
+genuinely do predict alike. It is exactly the situation the tie message
+is for.
+
+Noise has to match how the model is fitted. VeriFit fits the
+exponential and power models by taking logarithms, which is the right
+move when data is wrong by a percentage (populations, money, decay) and
+the wrong move when it is wrong by a fixed amount. The tables show it:
+with noise multiplied in, the exponential is recovered 78% of the time
+at 30 points and gets better as points are added, as it should. With
+noise added on top, the same model drops to 15% and gets worse with
+more points, because more points make the mismatch easier to see.
+Growth data usually carries multiplied noise, so the fit suits the
+common case, but the limit is real.
 
 Tests
 -----
