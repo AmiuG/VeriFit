@@ -78,6 +78,9 @@ def onAppStart(app):
                                          stripHeight)
 
     app.buttons = makeButtons()
+    # the Sample dropdown sits just left of the ? button
+    app.samples = ui.SampleMenu(windowWidth - margin - 96 - 34 - 70, 20)
+    app.pressedButton = None
     app.windowControls = ui.WindowControls(app.graphPanel)
     app.help = ui.HelpOverlay(windowWidth, windowHeight)
     app.status = 'Click a cell in the table to start entering data.'
@@ -88,14 +91,7 @@ def onAppStart(app):
 
 def makeButtons():
     buttons = []
-    # one button per sample dataset, after the 'samples:' label
-    left = margin + 52
-    for i in range(len(dataset.samples)):
-        label = dataset.samples[i][0]
-        width = 16 + 6 * len(label)
-        buttons.append(ui.Button(left, 30, width, 24, label, f'sample{i}'))
-        left += width + 6
-    left += 12
+    left = margin
     for label, action, width in [('Undo', 'undo', 62),
                                  ('Include all', 'includeAll', 86),
                                  ('Clear', 'clear', 62)]:
@@ -141,9 +137,7 @@ def loadSample(app, index):
 
 
 def doAction(app, action):
-    if action.startswith('sample'):
-        loadSample(app, int(action[len('sample'):]))
-    elif action == 'undo':
+    if action == 'undo':
         app.table.cancelEdit()
         app.status = 'Undo.' if app.data.undo() else 'Nothing to undo.'
         refit(app)
@@ -174,11 +168,19 @@ def onMousePress(app, mouseX, mouseY):
     if app.help.isOpen:
         app.help.isOpen = False
         return
+    request = app.samples.handleClick(mouseX, mouseY)
+    if request is not None:
+        if request.startswith('sample'):
+            loadSample(app, int(request[len('sample'):]))
+        elif app.samples.isOpen:
+            app.status = 'Pick a sample dataset.'
+        return
     if app.windowControls.handleClick(mouseX, mouseY, app.graph):
         app.status = 'Editing the graph window.'
         return
     for button in app.buttons:
         if button.contains(mouseX, mouseY):
+            app.pressedButton = button
             doAction(app, button.action)
             return
         
@@ -286,6 +288,7 @@ def onMouseDrag(app, mouseX, mouseY):
 
 def onMouseRelease(app, mouseX, mouseY):
     app.sensitivity.draggingIndex = None
+    app.pressedButton = None
 
 
 def onKeyPress(app, key):
@@ -355,10 +358,9 @@ def drawHeader(app):
     drawLabel('VeriFit!', margin, 14, size=18, bold=True, align='left')
     drawLabel('fitting data is not the same as predicting it',
               margin + 96, 16, size=11, align='left', fill=ui.mutedColor)
-    drawLabel('samples:', margin, 42, size=10, align='left',
-              fill=ui.mutedColor)
     for button in app.buttons:
-        button.draw()
+        button.draw(pressed=(button is app.pressedButton))
+    app.samples.drawButton()
 
 
 def drawStrip(app):
@@ -426,7 +428,8 @@ def redrawAll(app):
               margin, windowHeight - 8, size=10, align='left',
               fill=ui.mutedColor)
 
-    # the overlay goes on last, above everything else
+    # the open sample menu and the overlay go on last, above the panels
+    app.samples.drawMenu(app.sampleIndex)
     app.help.draw()
 
 

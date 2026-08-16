@@ -708,6 +708,52 @@ class ModelCards:
                       bold=True, fill=mutedColor)
     ########################################################################
 
+# the Sample button in the header. Clicking it drops down one button per
+# sample dataset, and the one currently loaded stays highlighted.
+class SampleMenu:
+    rowHeight = 24
+    width = 150
+
+    def __init__(self, left, top):
+        self.isOpen = False
+        self.button = Button(left, top, 64, 24, 'Sample', 'toggleSamples')
+        menuLeft = left + 64 - SampleMenu.width
+        menuTop = top + 24 + 4
+        self.rows = []
+        for i in range(len(dataset.samples)):
+            self.rows.append(Button(menuLeft,
+                                    menuTop + i * SampleMenu.rowHeight,
+                                    SampleMenu.width, SampleMenu.rowHeight,
+                                    dataset.samples[i][0], f'sample{i}'))
+
+    # returns an action string for main.py, or None when the click was
+    # not ours. Opening, choosing, and closing all happen here.
+    def handleClick(self, mouseX, mouseY):
+        if self.button.contains(mouseX, mouseY):
+            self.isOpen = not self.isOpen
+            return 'toggled'
+        if not self.isOpen:
+            return None
+        for row in self.rows:
+            if row.contains(mouseX, mouseY):
+                self.isOpen = False
+                return row.action
+        # a click anywhere else closes the menu and is swallowed, so
+        # dismissing it never also drops a point onto the graph
+        self.isOpen = False
+        return 'closed'
+
+    def drawButton(self, isPressed = False):
+        self.button.draw(pressed=(self.isOpen or isPressed))
+
+    # drawn late in redrawAll so the open menu sits above the panels
+    def drawMenu(self, activeIndex):
+        if not self.isOpen:
+            return
+        for i in range(len(self.rows)):
+            self.rows[i].draw(pressed=(i == activeIndex))
+
+
 class HelpOverlay:
     cardWidth = 560
     cardHeight = 400
