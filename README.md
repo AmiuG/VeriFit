@@ -162,9 +162,14 @@ common case, but the limit is real.
 Tests
 -----
 tests.py checks the math files (linalg, stats, models, dataset, engine)
-against answers worked out by hand. It does not need cmu_graphics:
+against answers worked out by hand, and the website's bridge.py along
+with them. It does not need cmu_graphics or a browser:
 
     python3 src/tests.py
+
+Run it after touching anything in src/ or web/bridge.py. Because both
+versions share those files, a green run says the desktop app and the
+website are both still doing the same arithmetic.
 
 Keyboard shortcuts
 ------------------
