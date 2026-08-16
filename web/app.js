@@ -864,40 +864,123 @@ function activeIndexOf(row) {
 // clicking, dragging and zooming the graph
 // ---------------------------------------------------------------
 
+// slides the window by a distance in pixels. A finger is physically on
+// the graph, so it drags the paper one for one; a mouse is not, and is
+// damped by PAN_SPEED so a trackpad does not fly across the data.
+function panByPixels(dx, dy, isTouch) {
+  const m = graphMetrics();
+  const speed = isTouch ? 1 : PAN_SPEED;
+  const spanX = (view.xMax - view.xMin) / (m.width - PAD.left - PAD.right)
+                * speed;
+  const spanY = (view.yMax - view.yMin) / (m.height - PAD.top - PAD.bottom)
+                * speed;
+  view.xMin -= dx * spanX; view.xMax -= dx * spanX;
+  view.yMin += dy * spanY; view.yMax += dy * spanY;
+}
+
+// zooms by a factor about a fixed point on screen, so whatever sits
+// under the cursor or between the fingers stays where it is
+function zoomAbout(pixelX, pixelY, factor) {
+  const m = graphMetrics();
+  const cx = toDataX(pixelX, m);
+  const cy = toDataY(pixelY, m);
+  view.xMin = cx + (view.xMin - cx) * factor;
+  view.xMax = cx + (view.xMax - cx) * factor;
+  view.yMin = cy + (view.yMin - cy) * factor;
+  view.yMax = cy + (view.yMax - cy) * factor;
+}
+
 function connectGraph() {
   const canvas = byId('graph');
+  // every finger or pen currently touching the graph, by its id
+  const touching = new Map();
   let dragging = false;
   let moved = 0;
   let last = null;
+  // how far apart the two fingers were, and where their middle was
+  let pinch = null;
+
+  function twoFingerState() {
+    const both = [...touching.values()];
+    const dx = both[0].x - both[1].x;
+    const dy = both[0].y - both[1].y;
+    return {
+      gap: Math.sqrt(dx * dx + dy * dy),
+      midX: (both[0].x + both[1].x) / 2,
+      midY: (both[0].y + both[1].y) / 2
+    };
+  }
 
   canvas.addEventListener('pointerdown', event => {
-    dragging = true;
-    moved = 0;
-    last = { x: event.offsetX, y: event.offsetY };
-    canvas.setPointerCapture(event.pointerId);
+    touching.set(event.pointerId, { x: event.offsetX, y: event.offsetY });
+    // keeping the pointer is a convenience, not a requirement, so a
+    // browser that refuses must not stop the gesture being set up
+    try {
+      canvas.setPointerCapture(event.pointerId);
+    } catch (error) {
+      // carry on without it
+    }
+    if (touching.size === 1) {
+      dragging = true;
+      moved = 0;
+      last = { x: event.offsetX, y: event.offsetY };
+    } else if (touching.size === 2) {
+      // a second finger turns the gesture into a pinch, and whatever
+      // the first one was doing stops counting as a tap
+      dragging = false;
+      moved = 999;
+      pinch = twoFingerState();
+    }
   });
 
   canvas.addEventListener('pointermove', event => {
+    if (!touching.has(event.pointerId)) return;
+    touching.set(event.pointerId, { x: event.offsetX, y: event.offsetY });
+
+    if (touching.size >= 2) {
+      const now = twoFingerState();
+      if (pinch !== null && now.gap > 0 && pinch.gap > 0) {
+        // spreading the fingers zooms in, and the middle of them also
+        // drags the graph along
+        panByPixels(now.midX - pinch.midX, now.midY - pinch.midY, true);
+        const factor = Math.min(2, Math.max(0.5, pinch.gap / now.gap));
+        zoomAbout(now.midX, now.midY, factor);
+        drawGraph();
+      }
+      pinch = now;
+      return;
+    }
+
     if (!dragging) return;
-    const m = graphMetrics();
     const dx = event.offsetX - last.x;
     const dy = event.offsetY - last.y;
     moved += Math.abs(dx) + Math.abs(dy);
-    const spanX = (view.xMax - view.xMin) / (m.width - PAD.left - PAD.right)
-                  * PAN_SPEED;
-    const spanY = (view.yMax - view.yMin) / (m.height - PAD.top - PAD.bottom)
-                  * PAN_SPEED;
-    view.xMin -= dx * spanX; view.xMax -= dx * spanX;
-    view.yMin += dy * spanY; view.yMax += dy * spanY;
+    panByPixels(dx, dy, event.pointerType === 'touch');
     last = { x: event.offsetX, y: event.offsetY };
     drawGraph();
   });
 
+  function liftPointer(event) {
+    touching.delete(event.pointerId);
+    if (touching.size < 2) pinch = null;
+    if (touching.size === 1) {
+      // one finger left after a pinch: carry on from where it is, so
+      // the graph does not jump
+      const [remaining] = [...touching.values()];
+      last = { x: remaining.x, y: remaining.y };
+      dragging = true;
+    }
+    if (touching.size === 0) dragging = false;
+  }
+
+  canvas.addEventListener('pointercancel', liftPointer);
+
   canvas.addEventListener('pointerup', event => {
-    dragging = false;
+    const wasPinching = touching.size >= 2;
+    liftPointer(event);
     // a press that did not really move is a click, and a click adds a
     // point where it landed
-    if (moved > 5) return;
+    if (moved > 5 || wasPinching || touching.size > 0) return;
     const m = graphMetrics();
     const acrossPlot = event.offsetX >= PAD.left &&
                        event.offsetX <= m.width - PAD.right;
@@ -930,14 +1013,8 @@ function connectGraph() {
     // its sign. The clamp stops a flick from jumping several times over.
     const factor = Math.min(2, Math.max(0.5,
                             Math.exp(event.deltaY * ZOOM_SPEED)));
-    const m = graphMetrics();
     // zoom toward the cursor, so the point under it stays put
-    const cx = toDataX(event.offsetX, m);
-    const cy = toDataY(event.offsetY, m);
-    view.xMin = cx + (view.xMin - cx) * factor;
-    view.xMax = cx + (view.xMax - cx) * factor;
-    view.yMin = cy + (view.yMin - cy) * factor;
-    view.yMax = cy + (view.yMax - cy) * factor;
+    zoomAbout(event.offsetX, event.offsetY, factor);
     drawGraph();
   }, { passive: false });
 
