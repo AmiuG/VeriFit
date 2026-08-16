@@ -27,8 +27,8 @@ const CURVE_COLORS = [
 // trackpad, so it is deliberately gentler. Zoom is worked out from how
 // far the wheel really turned, so the many tiny scroll events a
 // trackpad sends do not race away.
-const PAN_SPEED = 0.45;
-const ZOOM_SPEED = 0.0015;
+const PAN_SPEED = 0.55;
+const ZOOM_SPEED = 0.0020;
 
 let bridge = null;       // the python module, once it is loaded
 let samples = [];        // the built in datasets, read from python
@@ -116,8 +116,14 @@ async function boot() {
     buildSampleButtons();
     connectControls();
 
-    // a shared link carries its own data; otherwise start with a sample
-    if (!loadFromLink()) loadSample(0);
+    // a shared link carries its own data; otherwise the graph starts
+    // empty, so the first thing on it is the visitor's own numbers
+    if (!loadFromLink()) {
+      points = [];
+      markActiveSample(-1);
+      analyze();
+      reframe();
+    }
 
     show('booting', false);
     show('app', true);
@@ -390,6 +396,8 @@ function renderVerdict() {
 function renderWarnings() {
   const holder = byId('warnings');
   holder.innerHTML = '';
+  // an empty graph is a starting point, not a problem worth warning about
+  if (points.length === 0) return;
   for (const warning of latest.warnings) {
     const line = document.createElement('div');
     line.className = 'warning';
@@ -403,7 +411,8 @@ function renderRanking() {
   list.innerHTML = '';
   if (latest.results.length === 0) {
     list.innerHTML = '<li class="muted small" style="padding:6px 0">' +
-                     'No model fitted yet. Add points, or try a sample.</li>';
+                     'Nothing fitted yet. Click the graph to add points, ' +
+                     'paste your own under Data, or open Sample.</li>';
     return;
   }
   latest.results.forEach((result, index) => {
@@ -502,7 +511,9 @@ function buildDetail(result) {
 
 function renderUnavailable() {
   const holder = byId('unavailable');
-  if (latest.unavailable.length === 0) {
+  // with nothing entered every model is unavailable, and listing all
+  // seven reasons says nothing useful
+  if (latest.unavailable.length === 0 || points.length === 0) {
     holder.textContent = '';
     return;
   }
