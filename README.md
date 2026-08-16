@@ -40,6 +40,8 @@ computer only, so nothing on the network can reach it.
 The website has everything the desktop app has, plus three things only
 a browser can do:
 
+    Sample    opens the list of built-in datasets; the one currently
+              loaded stays marked.
     Data      paste or upload two columns of numbers. Commas, tabs and
               spaces all work, and a header row is ignored.
     Share     copies a link with the whole dataset packed into it, so a
