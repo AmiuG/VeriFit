@@ -4,6 +4,12 @@ import stats
 
 # turn 3.0 into '3' and 2.71828 into '2.7183' so equations look clean
 def formatNumber(value):
+    # rounding to 4 decimals would turn a tiny coefficient like 0.000003
+    # into a plain 0, so those switch to powers of ten instead
+    if value != 0 and abs(value) < 0.001:
+        digits, exponent = f'{value:.2e}'.split('e')
+        digits = digits.rstrip('0').rstrip('.')
+        return f'({digits}*10^{int(exponent)})'
     rounded = round(value, 4)
     if rounded == int(rounded):
         return str(int(rounded))
