@@ -14,7 +14,7 @@ stripeFill = rgb(250, 250, 251)
 # The three fonts the app uses. Each one is set in exactly one place, so
 # swapping any of them is a one word change. cmu_graphics also ships
 # quicksand, ubuntu, orbitron, lobster and source code pro, among others.
-bodyFont = 'roboto'          # every number, label and sentence
+bodyFont = 'ubuntu'          # every number, label and sentence
 displayFont = 'montserrat'   # the small uppercase panel headings
 titleFont = 'quicksand'      # the VeriFit wordmark only
 titleFill = rgb(242, 242, 242)
