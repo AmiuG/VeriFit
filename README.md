@@ -130,6 +130,13 @@ What the study shows:
    76% to 87% of the time. Being unsure out loud is not the same kind
    of mistake as being confidently wrong.
 
+One thing the score will not do is change on you. Cross validation has
+to split the points into groups, and dealing them out row by row would
+mean the same numbers typed in a different order came back with a
+different score. The groups are worked out from each point's place in x
+order instead, so entering the same data sorted, shuffled or backwards
+gives the same answer every time.
+
 Where it struggles, and why
 ---------------------------
 The study also found two real limits, which are worth stating plainly.

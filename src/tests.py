@@ -197,9 +197,13 @@ def testFoldsIgnoreRowOrder():
     xs = [5, 1, 3, 2, 4]
     ys = [50, 10, 30, 20, 40]
     folds = stats.foldNumbers(xs, ys, 2)
-    # x = 1 is first in order and x = 5 is last, whatever row they are in
-    assert(folds[1] == 0 and folds[3] == 1)
-    assert(folds[2] == 0 and folds[4] == 1 and folds[0] == 0)
+    # in x order the points are 1, 2, 3, 4, 5, so they take groups
+    # 0, 1, 0, 1, 0 no matter which row each one was typed into
+    assert(folds[1] == 0)   # x = 1, first in order
+    assert(folds[3] == 1)   # x = 2, second
+    assert(folds[2] == 0)   # x = 3, third
+    assert(folds[4] == 1)   # x = 4, fourth
+    assert(folds[0] == 0)   # x = 5, last, even though it is row one
 
     # with more points than leave-one-out allows, shuffling the rows used
     # to change the score. It must not any more.
