@@ -301,3 +301,30 @@ class AnalysisEngine:
             return resultA
         else:
             return resultB
+
+    # one short plain-English reading of the whole ranking, so the
+    # conclusion is not buried in the numbers
+    def verdict(self):
+        if len(self.results) == 0:
+            return str()
+        best = self.results[0]
+        name = best.model.name
+        if best.cvRmse is None:
+            return (f'{name} could be fitted, but there is too little '
+                    f'data to score its predictions.')
+        if len(self.results) == 1:
+            return f'{name} is the only model that could be fitted here.'
+        if self.tieMessage != str():
+            return self.tieMessage
+
+        sentence = f'{name} predicts unseen points best'
+        if best.akaikeWeight is not None:
+            share = round(best.akaikeWeight * 100)
+            sentence += f', holding {share}% of the AICc support'
+        sentence += '.'
+        if len(best.interpretations) > 0:
+            sentence += (' Its residuals raise a warning, so open its '
+                         'card before trusting it.')
+        else:
+            sentence += ' Its residuals show no obvious pattern.'
+        return sentence
