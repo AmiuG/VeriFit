@@ -224,3 +224,25 @@ class Dataset:
  
     def __repr__(self):
         return f'Dataset with {self.getActiveCount()} active points'
+
+
+# the built-in sample datasets: (label, hint, xs, ys). Each one is picked
+# to show off one thing the ranking can do.
+samples = [
+    ('Line', 'a clear winner, and models that cannot fit at all',
+     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+     [-10.6, -8.4, -4.7, -2.2, 1.4, 3.7, 6.6, 10.5, 12.8, 16.3, 18.6, 22.4]),
+    ('Curve', 'watch the straight-line models miss the bend',
+     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+     [15.5, 26.8, 33.9, 40.3, 42.6, 44.1, 41.8, 38.7, 31.2, 23.4]),
+    ('Growth', 'exponential growth; check the R2 vs CV tab',
+     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+     [6.1, 7.4, 11.5, 14.9, 22.1, 29.6, 42.8, 58.5, 83.2, 115.1]),
+    ('Outlier', 'one wild point decides the winner; check Influence',
+     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+     [-14.2, -10.8, -8.3, 24.0, -2.1, 1.2, 4.6, 7.8, 11.3, 14.7,
+      17.2, 21.1]),
+    ('Tie', 'two models this data cannot tell apart',
+     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+     [2.4, 5.1, 6.2, 9.4, 10.1, 13.4, 14.0, 17.6, 18.1, 21.4, 22.2, 25.6]),
+]
