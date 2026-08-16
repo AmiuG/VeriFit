@@ -68,6 +68,10 @@ Mouse controls
                                    opens a popover to type exact graph
                                    bounds; tab cycles the four boxes,
                                    enter applies, escape closes
+         Sample button (top right of the header)
+                                   opens the list of sample datasets;
+                                   the one currently loaded stays
+                                   highlighted
          Sensitivity tab           drag a slider to move a parameter
                                    within +/-2 standard errors; Reset
                                    refits and restores the scores
