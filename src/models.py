@@ -370,11 +370,35 @@ class PowerModel(Model):
         self.isAdjusted = False
         return True
 
+    def designMatrix(self, x_coords):
+        # the fit solved ln(y) = ln(a) + b*ln(x), so the matrix is [1, ln x]
+        return [[1, math.log(x)] for x in x_coords if x > 0]
+
+    def fitSpaceResiduals(self, x_coords, y_coords):
+        if not self.isFitted or self.a <= 0:
+            return None
+        lnA = math.log(self.a)
+        out = []
+        for i in range(len(x_coords)):
+            if x_coords[i] <= 0 or y_coords[i] <= 0:
+                return None
+            out.append(math.log(y_coords[i]) -
+                       (lnA + self.b * math.log(x_coords[i])))
+        return out
+
+    # 'a' was estimated as ln(a), so its interval is multiplicative rather
+    # than symmetric: a * e^(-2SE) up to a * e^(+2SE)
+    def boundsFromErrors(self, errors, spread = 2):
+        reach = spread * errors[0]
+        aBounds = (self.a * math.exp(-reach), self.a * math.exp(reach))
+        bReach = spread * errors[1]
+        return [aBounds, (self.b - bReach, self.b + bReach)]
+
     def predict(self, x):
         if not self.isFitted or x<=0:
             return None
         return self.a * (x**self.b)
-    
+
     def applyParams(self):
         self.a, self.b = self.params[0], self.params[1]
 
