@@ -95,11 +95,49 @@ function selectedResult() {
   return resultNamed(selectedName) || (latest && latest.results[0]) || null;
 }
 
+// Something went wrong before the app could start. Almost always this is
+// the download of Python not arriving, so the page says so in plain
+// words and suggests what usually fixes it, rather than showing a stack
+// trace to somebody who only wanted to fit a curve.
 function reportFailure(error) {
   show('booting', false);
   show('failed', true);
-  byId('failureText').textContent = String(error);
   console.error(error);
+  byId('failureText').textContent = String(error &&
+                                          (error.stack || error.message) || error);
+
+  let reason;
+  let ideas;
+  if (typeof WebAssembly === 'undefined') {
+    reason = 'This browser is too old to run VeriFit. It needs ' +
+             'WebAssembly, which arrived in 2017.';
+    ideas = ['Try a recent Chrome, Safari, Firefox or Edge.'];
+  } else if (navigator.onLine === false) {
+    reason = 'The computer looks like it is offline. VeriFit downloads ' +
+             'Python itself the first time it runs, and that download ' +
+             'could not be made.';
+    ideas = ['Reconnect, then press Try again.'];
+  } else {
+    reason = 'VeriFit runs Python inside the page, and downloads it the ' +
+             'first time you visit. That download did not arrive.';
+    ideas = [
+      'School and office networks sometimes block the site the Python ' +
+      'files come from. A phone hotspot or a home connection usually works.',
+      'If the connection is slow, the download may simply have timed ' +
+      'out. Press Try again.',
+      'Nothing is wrong with your data. Nothing was ever sent anywhere.'
+    ];
+  }
+
+  byId('failureReason').textContent = reason;
+  const list = byId('failureIdeas');
+  list.textContent = '';
+  for (const idea of ideas) {
+    const item = document.createElement('li');
+    item.textContent = idea;
+    list.appendChild(item);
+  }
+  byId('retryButton').onclick = () => location.reload();
 }
 
 
@@ -118,6 +156,12 @@ async function fetchText(path) {
 async function boot() {
   try {
     byId('bootStatus').textContent = 'Downloading Python…';
+    // when the script itself was blocked, loadPyodide never arrives, and
+    // saying so is more useful than a reference error
+    if (typeof loadPyodide === 'undefined') {
+      throw new Error('The Python runtime could not be downloaded. ' +
+                      'cdn.jsdelivr.net may be blocked on this network.');
+    }
     const pyodide = await loadPyodide();
 
     byId('bootStatus').textContent = 'Loading VeriFit…';
@@ -184,19 +228,6 @@ function analyze(options = {}) {
 function remember() {
   undoStack.push(JSON.parse(JSON.stringify(points)));
   if (undoStack.length > 60) undoStack.shift();
-}
-
-// While a cell is being typed into, the state before the first keystroke
-// is held here and only filed away once something really changes. Simply
-// clicking through cells therefore does not fill the undo stack with
-// copies of the same data.
-let pendingUndo = null;
-
-function rememberOnce() {
-  if (pendingUndo === null) return;
-  undoStack.push(pendingUndo);
-  if (undoStack.length > 60) undoStack.shift();
-  pendingUndo = null;
 }
 
 function undo() {
@@ -285,26 +316,86 @@ function renderTable() {
   body.appendChild(buildDraftRow());
 }
 
+// Where the cursor goes when a cell is finished with: along the row,
+// then down to the next one, ending at the blank row at the bottom.
+function nextCell(row, key) {
+  if (key === 'x') return { row: row, key: 'y' };
+  if (row === 'draft') return { row: 'draft', key: 'x' };
+  const below = row + 1;
+  if (below < points.length) return { row: below, key: 'x' };
+  return { row: 'draft', key: 'x' };
+}
+
+function previousCell(row, key) {
+  if (key === 'y') return { row: row, key: 'x' };
+  if (row === 'draft') {
+    if (points.length === 0) return { row: 'draft', key: 'x' };
+    return { row: points.length - 1, key: 'y' };
+  }
+  if (row === 0) return { row: 0, key: 'x' };
+  return { row: row - 1, key: 'y' };
+}
+
+function focusCell(where) {
+  const input = document.querySelector(
+    `#dataBody input[data-row="${where.row}"][data-key="${where.key}"]`);
+  if (input) {
+    input.focus();
+    input.select();
+  }
+}
+
+// Enter and tab finish a cell and step on. Typing on its own never
+// does, so a number half typed is never taken as final.
+function connectCellKeys(input, row, key, commit) {
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === 'Tab') {
+      event.preventDefault();
+      if (!commit()) return;
+      focusCell(event.shiftKey ? previousCell(row, key)
+                               : nextCell(row, key));
+    } else if (event.key === 'Escape') {
+      input.blur();
+    }
+  });
+  // clicking away also finishes the cell, which is what somebody
+  // reaching for the mouse expects
+  input.addEventListener('blur', commit);
+  // while typing, only say whether it reads as a number yet
+  input.addEventListener('input', () => {
+    input.classList.toggle('bad', parseNumber(input.value) === null &&
+                                  input.value.trim() !== '');
+  });
+}
+
 function buildCell(point, index, key) {
   const cell = document.createElement('td');
   const input = document.createElement('input');
   input.type = 'text';
   input.inputMode = 'decimal';
   input.value = trimNumber(point[key]);
-  input.addEventListener('input', () => {
+  input.dataset.row = index;
+  input.dataset.key = key;
+
+  function commit() {
     const parsed = parseNumber(input.value);
-    input.classList.toggle('bad', parsed === null);
-    if (parsed === null) return;
-    rememberOnce();
+    if (parsed === null) {
+      // put the old number back rather than losing the point
+      input.value = trimNumber(points[index][key]);
+      input.classList.remove('bad');
+      return true;
+    }
+    input.classList.remove('bad');
+    if (parsed === points[index][key]) return true;
+    remember();
     points[index][key] = parsed;
     // the table is left alone so the cursor stays where it is
     analyze({ keepTable: true });
     markActiveSample(-1);
-  });
-  input.addEventListener('focus', () => {
-    pendingUndo = JSON.parse(JSON.stringify(points));
-  });
-  input.addEventListener('blur', () => { pendingUndo = null; });
+    return true;
+  }
+
+  connectCellKeys(input, index, key, commit);
   cell.appendChild(input);
   return cell;
 }
@@ -357,31 +448,38 @@ function buildDraftRow() {
   plus.textContent = '+';
   markCell.appendChild(plus);
 
-  const draft = { x: '', y: '' };
-  const cells = {};
+  const boxes = {};
   for (const key of ['x', 'y']) {
     const cell = document.createElement('td');
     const input = document.createElement('input');
     input.type = 'text';
     input.inputMode = 'decimal';
     input.placeholder = key;
-    input.addEventListener('input', () => {
-      draft[key] = input.value;
-      const x = parseNumber(draft.x);
-      const y = parseNumber(draft.y);
-      if (x === null || y === null) return;
-      remember();
-      points.push({ x, y, excluded: false });
-      markActiveSample(-1);
-      analyze();
-      // carry on typing in the new blank row
-      const inputs = byId('dataBody').querySelectorAll('tr.draft input');
-      if (inputs.length > 0) inputs[0].focus();
-    });
-    cells[key] = input;
+    input.dataset.row = 'draft';
+    input.dataset.key = key;
+    boxes[key] = input;
     cell.appendChild(input);
-    row.appendChild(key === 'x' ? cell : cell);
+    row.appendChild(cell);
   }
+
+  // The new point is only made once both boxes hold a number and the
+  // cell is finished with. Adding it while somebody is still typing
+  // would turn a half typed 25 into a 2 and move the cursor away.
+  function commit() {
+    const x = parseNumber(boxes.x.value);
+    const y = parseNumber(boxes.y.value);
+    if (x === null || y === null) return true;
+    remember();
+    points.push({ x, y, excluded: false });
+    markActiveSample(-1);
+    analyze();
+    // the table was rebuilt, so carry on in the fresh blank row
+    focusCell({ row: 'draft', key: 'x' });
+    return true;
+  }
+
+  connectCellKeys(boxes.x, 'draft', 'x', commit);
+  connectCellKeys(boxes.y, 'draft', 'y', commit);
   row.insertBefore(markCell, row.firstChild);
   row.appendChild(document.createElement('td'));
   return row;
