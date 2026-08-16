@@ -11,12 +11,15 @@ shadowColor = rgb(226, 228, 232)
 buttonHover = rgb(238, 239, 242)
 tabHover = rgb(229, 229, 229)
 stripeFill = rgb(250, 250, 251)
-# The three fonts the app uses. Each one is set in exactly one place, so
-# swapping any of them is a one word change. cmu_graphics also ships
-# quicksand, ubuntu, orbitron, lobster and source code pro, among others.
-bodyFont = 'ubuntu'          # every number, label and sentence
-displayFont = 'montserrat'   # the small uppercase panel headings
-titleFont = 'quicksand'      # the VeriFit wordmark only
+# The three fonts the app uses, each set in exactly one place so that
+# swapping one is a single word change. cmu_graphics ships no fonts of
+# its own: a name is passed straight through to the computer's font
+# list, and anything it cannot find quietly falls back to a default.
+# These three are installed with macOS, so they always render. Others
+# that work: Avenir, Optima, Palatino, Futura, Verdana, Menlo.
+bodyFont = 'Helvetica Neue'  # every number, label and sentence
+displayFont = 'Avenir Next'  # the small uppercase panel headings
+titleFont = 'Avenir Next'    # the VeriFit wordmark only
 titleFill = rgb(242, 242, 242)
 textColor = 'black'
 mutedColor = rgb(125, 125, 125)

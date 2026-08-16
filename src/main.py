@@ -371,13 +371,15 @@ def drawHeader(app):
     # the exclamation mark carries the accent color, and is the only part
     # of the title that is not near black. The name ends exactly where the
     # mark begins, so the two always meet however wide the font renders.
-    joinX = margin + 76
+    # the name is measured at 71px wide, so ending it here leaves the V
+    # sitting flush above the Undo button
+    joinX = margin + 71
     drawLabel('VeriFit', joinX, 16, size=22, bold=True, align='right',
               fill=rgb(25, 30, 38), font=ui.titleFont)
-    drawLabel('!', joinX + 3, 16, size=22, bold=True, align='left',
+    drawLabel('!', joinX + 2, 16, size=22, bold=True, align='left',
               fill=ui.accentColor, font=ui.titleFont)
     drawLabel('fitting data is not the same as predicting it',
-              joinX + 28, 18, size=11, align='left', italic=True,
+              joinX + 26, 18, size=11, align='left', italic=True,
               fill=ui.mutedColor, font=ui.bodyFont)
     for button in app.buttons:
         button.draw(pressed=(button is app.pressedButton),
