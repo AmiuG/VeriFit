@@ -460,6 +460,41 @@ def testPowerStandardErrors():
     print('Passed!')
 
 
+def testVerdict():
+    print('Testing the verdict...', end='')
+    # nothing to conclude from an empty dataset
+    analysis = makeEngine([], [])
+    analysis.analyze()
+    assert(analysis.verdict() == '')
+
+    # one point fits a flatline but cannot be scored
+    analysis = makeEngine([3], [5])
+    analysis.analyze()
+    assert('too little data' in analysis.verdict())
+
+    # two points on the same x leave the flatline as the only model
+    analysis = makeEngine([2, 2], [1, 3])
+    analysis.analyze()
+    assert('only model' in analysis.verdict())
+
+    # the sample data is a genuine tie: a power fit with exponent near 1
+    # is almost the same curve as a line, and both use two parameters
+    analysis = makeEngine(sampleXs, sampleYs)
+    analysis.analyze()
+    text = analysis.verdict()
+    assert('almost identically' in text)
+    assert('cannot tell them apart' in text)
+
+    # a parabola has a clear winner with clean residuals
+    analysis = makeEngine([1, 2, 3, 4, 5, 6, 7, 8],
+                          [1.1, 3.9, 9.2, 15.8, 25.3, 35.8, 49.4, 63.7])
+    analysis.analyze()
+    text = analysis.verdict()
+    assert(text.startswith('Quadratic predicts unseen points best'))
+    assert('no obvious pattern' in text)
+    print('Passed!')
+
+
 def testColorsAndVisibility():
     print('Testing stable colors and visibility memory...', end='')
     analysis = makeEngine(sampleXs, sampleYs)
@@ -504,6 +539,7 @@ def main():
     testAdjustedRescoring()
     testFormatNumber()
     testPowerStandardErrors()
+    testVerdict()
     testColorsAndVisibility()
     print('All tests passed!')
 
