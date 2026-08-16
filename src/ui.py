@@ -538,6 +538,24 @@ class ModelCards:
             return analysisEngine.results[self.expandedIndex]
         return None
 
+    def selectedName(self, analysisEngine):
+        result = self.selectedResult(analysisEngine)
+        if result is None:
+            return None
+        return result.model.name
+
+    # points expandedIndex back at the model that was open before a refit,
+    # since the same model may now sit at a different rank
+    def reselect(self, analysisEngine, name):
+        if name is None:
+            return
+        for i in range(len(analysisEngine.results)):
+            if analysisEngine.results[i].model.name == name:
+                self.expandedIndex = i
+                return
+        # that model could not be fitted anymore, so fall back to the winner
+        self.expandedIndex = 0
+
     # return ('toggle', index) when the swatch was hit, ('select', index) for the
     # row itself, or None
     def handleClick(self, mouseX, mouseY, analysisEngine):

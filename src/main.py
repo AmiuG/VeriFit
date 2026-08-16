@@ -104,7 +104,10 @@ def makeButtons():
 # every change to the data funnels through here. It re-runs the engine and
 # deliberately leaves the graph window alone.
 def refit(app):
+    # remember which model's card is open, because ranks may shuffle
+    expandedName = app.cards.selectedName(app.engine)
     app.engine.analyze()
+    app.cards.reselect(app.engine, expandedName)
 
     app.influence = None
     if app.mode == 'influence':
