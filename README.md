@@ -28,6 +28,13 @@ cmu_graphics is the only library that needs to be installed:
 
     pip install cmu-graphics
 
+Tests
+-----
+tests.py checks the math files (linalg, stats, models, dataset, engine)
+against answers worked out by hand. It does not need cmu_graphics:
+
+    python3 src/tests.py
+
 Keyboard shortcuts
 ------------------
          s        load the sample dataset
