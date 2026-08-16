@@ -868,7 +868,7 @@ class PredictPanel:
         shown = self.buffer + ('|' if self.isEditing else '')
         drawLabel(shown, self.boxLeft + 5, self.boxTop + self.boxHeight / 2,
                   size=11, align='left')
-        drawLabel('or drag the line on the graph',
+        drawLabel('or drag on the graph',
                   self.boxLeft + self.boxWidth + 10,
                   self.boxTop + self.boxHeight / 2, size=9, align='left',
                   fill=mutedColor)
@@ -878,7 +878,8 @@ class PredictPanel:
                       self.top + 44, size=10, align='left', fill=mutedColor)
             return
 
-        # one line per visible model, so competing predictions can be compared
+        # one line per visible model, so competing predictions can be
+        # compared, each with the range a new point would likely land in
         y = self.top + 42
         shownAny = False
         for candidate in analysisEngine.results:
@@ -889,6 +890,12 @@ class PredictPanel:
             drawLabel(f'{candidate.model.name}', self.left, y, size=10,
                       align='left', fill=colorForResult(candidate))
             drawLabel(f'y = {text}', self.left + 96, y, size=10, align='left')
+            band = analysisEngine.bandAt(candidate, self.value)
+            if band is not None:
+                drawLabel(f'likely {formatScore(band[0], 3)} '
+                          f'to {formatScore(band[1], 3)}',
+                          self.left + 210, y, size=10, align='left',
+                          fill=mutedColor)
             y += 14
             shownAny = True
         if not shownAny:
@@ -896,12 +903,13 @@ class PredictPanel:
                       align='left', fill=mutedColor)
 
         if data.isExtrapolation(self.value):
-            drawRect(self.left + 210, self.top + 34, self.width - 216, 34,
+            boxLeft = self.left + self.width - 210
+            drawRect(boxLeft, self.top + 2, 204, 32,
                      fill=warningFill, border=errorColor)
-            drawLabel('outside the data range', self.left + 218,
-                      self.top + 45, size=10, align='left', fill=errorColor)
-            drawLabel('the models disagree most here', self.left + 218,
-                      self.top + 59, size=9, align='left', fill=mutedColor)
+            drawLabel('outside the data range', boxLeft + 8,
+                      self.top + 12, size=10, align='left', fill=errorColor)
+            drawLabel('watch the bands widen out here', boxLeft + 8,
+                      self.top + 26, size=9, align='left', fill=mutedColor)
 
 class SensitivityPanel:
     rowGap = 22
