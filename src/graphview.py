@@ -251,6 +251,30 @@ class GraphView:
             pixelX += 1
             dashStep += GraphView.curveStep
 
+    # the edges of the selected model's plausible range, as two thin
+    # lines in its color. The flare toward the sides of the graph is the
+    # extrapolation warning drawn as a picture.
+    def drawBand(self, analysisEngine, result, color):
+        step = 6
+        previous = None
+        pixelX = self.left
+        while pixelX <= self.right:
+            band = analysisEngine.bandAt(result, self.toDataX(pixelX))
+            if band is None:
+                previous = None
+                pixelX += step
+                continue
+            lowY, highY = self.toScreenY(band[0]), self.toScreenY(band[1])
+            if previous is not None:
+                prevX, prevLow, prevHigh = previous
+                for y1, y2 in [(prevLow, lowY), (prevHigh, highY)]:
+                    piece = self.clipSegment(prevX, y1, pixelX, y2)
+                    if piece is not None:
+                        drawLine(piece[0], piece[1], piece[2], piece[3],
+                                 fill=color, lineWidth=1, opacity=50)
+            previous = (pixelX, lowY, highY)
+            pixelX += step
+
     def drawPredictionMarker(self, analysisEngine, x, markerColor):
         pixelX = self.toScreenX(x)
         if not (self.left <= pixelX <= self.right):

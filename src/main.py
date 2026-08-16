@@ -390,6 +390,9 @@ def drawGraphPanel(app):
     try:
         app.graph.draw(app.data, app.engine)
         result = selected(app)
+        # the selected model also shows its plausible range
+        if result is not None and result.isVisible:
+            app.graph.drawBand(app.engine, result, app.graph.colorFor(result))
         # the untouched fit stays visible behind a hand-adjusted curve
         if result is not None and result.isAdjusted():
             app.graph.drawGhostCurve(app.engine, result,
