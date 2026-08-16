@@ -52,6 +52,12 @@ a browser can do:
 
     Sample    opens the list of built-in datasets; the one currently
               loaded stays marked.
+    Window    type exact edges for the view instead of dragging to them.
+    Axis names click the x or y heading in the data table, or the margin
+              beside either axis on the graph. The label is drawn beside
+              the graph, and the symbol and unit head the table column,
+              so a column reads t (s) rather than x. With no label
+              entered, the graph carries no labels at all.
     Data      paste or upload two columns of numbers. Commas, tabs and
               spaces all work, and a header row is ignored.
     Share     copies a link with the whole dataset packed into it, so a
