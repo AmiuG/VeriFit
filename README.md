@@ -15,6 +15,28 @@ Video demo
 ----------
 https://youtu.be/QjtiAJIKz28
 
+Website version
+---------------
+The same analysis also runs in a browser, with no install. The website
+does not reimplement any of the maths: index.html starts a real Python
+interpreter in the page (Pyodide, compiled to WebAssembly), hands it the
+same five files the desktop app uses, and draws what comes back. There
+is one copy of engine.py, and both versions share it.
+
+    src/            the desktop app and the shared maths
+    web/bridge.py   turns engine answers into JSON for the page
+    web/app.js      the interface: canvas, events, layout
+    index.html      the entry point
+
+To work on it, serve the folder and open it. Opening index.html straight
+from disk will not work, because a page loaded from a file is not
+allowed to fetch the .py files:
+
+    python3 -m http.server 8000 --bind 127.0.0.1
+
+then visit http://localhost:8000. The --bind keeps the server on this
+computer only, so nothing on the network can reach it.
+
 How to run
 ----------
 1. Put all eight .py files in the same folder:
