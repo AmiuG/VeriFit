@@ -2,10 +2,12 @@ from cmu_graphics import *
 import math
 
 # graphview will soley draw (never edits data, rerun the engine, store values, etc)
-borderColor = 'black'
-axisColor = 'black'
+borderColor = rgb(205, 205, 205)
+axisColor = rgb(55, 55, 55)
 pointColor = 'black'
-gridColor = 'gray'
+minorGridColor = rgb(241, 241, 241)
+majorGridColor = rgb(224, 224, 224)
+tickLabelColor = rgb(95, 95, 95)
 excludedColor = 'gray'
 curveColors = ['blue', 'red', 'green', 'purple', 'orange', 'brown', 'black']
 extraCurveColor = 'gray'
@@ -24,10 +26,9 @@ def niceStep(roughStep):
             return multiple * base
     return 10 * base
 
-def tickValues(low, high, targetCount):
-    if high <= low or targetCount < 1:
+def tickValuesByStep(low, high, step):
+    if step <= 0 or high <= low:
         return []
-    step = niceStep((high-low) / targetCount)
     firstIndex = math.ceil(low / step)
     lastIndex = math.floor(high / step)
     values = []
@@ -35,6 +36,19 @@ def tickValues(low, high, targetCount):
         value = tickIndex * step
         values.append(value)
     return values
+
+def tickValues(low, high, targetCount):
+    if high <= low or targetCount < 1:
+        return []
+    return tickValuesByStep(low, high, niceStep((high-low) / targetCount))
+
+# desmos splits a major step of 2 into quarters, and 1 or 5 into fifths
+def minorStep(step):
+    power = math.floor(math.log10(step))
+    mantissa = round(step / (10 ** power))
+    if mantissa == 2:
+        return step / 4
+    return step / 5
 
 ########################################################################
 # written by Claude Opus 5 / Jul 29, 2026
@@ -240,21 +254,73 @@ class GraphView:
         for i in range(len(visible)-1, -1, -1):
             self.drawCurve(analysisEngine, visible[i], self.colorFor(visible[i]))
 
-    def drawGridAndTicks(self):
+    def gridSteps(self):
         xStep = niceStep((self.xMax - self.xMin) /
                          max(1, self.width // GraphView.pixelsPerXTick))
         yStep = niceStep((self.yMax - self.yMin) /
                          max(1, self.height // GraphView.pixelsPerYTick))
- 
-        for x in tickValues(self.xMin, self.xMax, self.width // GraphView.pixelsPerXTick):
+        return (xStep, yStep)
+
+    def drawGridAndTicks(self):
+        xStep, yStep = self.gridSteps()
+
+        # the faint in-between lines go down first, then the main grid on
+        # top of them, the way desmos layers its paper
+        for x in tickValuesByStep(self.xMin, self.xMax, minorStep(xStep)):
             pixelX = self.toScreenX(x)
-            drawLine(pixelX, self.top, pixelX, self.bottom, fill=gridColor, opacity=20)
-            drawLabel(formatTick(x, xStep), pixelX, self.bottom + 12, size=10)
- 
-        for y in tickValues(self.yMin, self.yMax, self.height // GraphView.pixelsPerYTick):
+            drawLine(pixelX, self.top, pixelX, self.bottom,
+                     fill=minorGridColor, lineWidth=1)
+        for y in tickValuesByStep(self.yMin, self.yMax, minorStep(yStep)):
             pixelY = self.toScreenY(y)
-            drawLine(self.left, pixelY, self.right, pixelY, fill=gridColor, opacity=20)
-            drawLabel(formatTick(y, yStep), self.left - 6, pixelY, size=10, align='right')
+            drawLine(self.left, pixelY, self.right, pixelY,
+                     fill=minorGridColor, lineWidth=1)
+        for x in tickValuesByStep(self.xMin, self.xMax, xStep):
+            pixelX = self.toScreenX(x)
+            drawLine(pixelX, self.top, pixelX, self.bottom,
+                     fill=majorGridColor, lineWidth=1)
+        for y in tickValuesByStep(self.yMin, self.yMax, yStep):
+            pixelY = self.toScreenY(y)
+            drawLine(self.left, pixelY, self.right, pixelY,
+                     fill=majorGridColor, lineWidth=1)
+
+    # tick labels hug the axes like desmos, and slide to the nearest edge
+    # of the panel when an axis is out of view
+    def drawTickLabels(self):
+        xStep, yStep = self.gridSteps()
+
+        if self.yMin <= 0 <= self.yMax:
+            labelY = min(self.toScreenY(0) + 11, self.bottom - 10)
+        elif self.yMin > 0:
+            labelY = self.bottom - 10
+        else:
+            labelY = self.top + 10
+        for x in tickValuesByStep(self.xMin, self.xMax, xStep):
+            if x == 0:
+                continue
+            pixelX = self.toScreenX(x)
+            text = formatTick(x, xStep)
+            halfWidth = 3 * len(text) + 2
+            drawRect(pixelX - halfWidth, labelY - 6, 2 * halfWidth, 12,
+                     fill='white', opacity=75)
+            drawLabel(text, pixelX, labelY, size=10, fill=tickLabelColor)
+
+        if self.xMin <= 0 <= self.xMax:
+            labelX = max(self.toScreenX(0) - 5, self.left + 38)
+            labelX = min(labelX, self.right - 6)
+        elif self.xMin > 0:
+            labelX = self.left + 38
+        else:
+            labelX = self.right - 6
+        for y in tickValuesByStep(self.yMin, self.yMax, yStep):
+            if y == 0:
+                continue
+            pixelY = self.toScreenY(y)
+            text = formatTick(y, yStep)
+            width = 6 * len(text) + 4
+            drawRect(labelX - width, pixelY - 6, width, 12, fill='white',
+                     opacity=75)
+            drawLabel(text, labelX, pixelY, size=10, align='right',
+                      fill=tickLabelColor)
 
     def drawAxisLines(self):
         if self.xMin <= 0 <= self.xMax:
@@ -281,6 +347,8 @@ class GraphView:
         if analysisEngine is not None and len(analysisEngine.results) > 0:
             self.drawCurves(analysisEngine)
         self.drawPoints(data)
+        # labels come after the curves so they stay readable on top
+        self.drawTickLabels()
         self.drawBorder()
         if data.getActiveCount() < 2:
             self.drawEmptyMessage()
