@@ -415,6 +415,34 @@ def testAdjustedRescoring():
     print('Passed!')
 
 
+def testPowerStandardErrors():
+    print('Testing power model standard errors...', end='')
+    xs = [1, 2, 3, 4, 5, 6]
+    # exactly 2 * x^1.5, so the leftover noise is zero
+    exact = models.PowerModel()
+    assert(exact.fit(xs, [2 * x ** 1.5 for x in xs]))
+    errors = stats.standardErrors(exact, xs, [2 * x ** 1.5 for x in xs])
+    assert(listsAlmostEqual(errors, [0, 0]))
+
+    # the same curve with a bit of noise
+    ys = [2.1, 5.5, 10.7, 15.8, 22.6, 29.2]
+    power = models.PowerModel()
+    assert(power.fit(xs, ys))
+    errors = stats.standardErrors(power, xs, ys)
+    assert(errors is not None and len(errors) == 2)
+    assert(errors[0] > 0 and errors[1] > 0)
+
+    # 'a' came from ln(a), so its interval is multiplicative and can
+    # never cross below zero
+    bounds = stats.parameterBounds(power, xs, ys)
+    assert(bounds is not None and len(bounds) == 2)
+    low, high = bounds[0]
+    assert(0 < low < power.a < high)
+    low, high = bounds[1]
+    assert(low < power.b < high)
+    print('Passed!')
+
+
 def testColorsAndVisibility():
     print('Testing stable colors and visibility memory...', end='')
     analysis = makeEngine(sampleXs, sampleYs)
@@ -457,6 +485,7 @@ def main():
     testOffsetPredictions()
     testInfluenceSweep()
     testAdjustedRescoring()
+    testPowerStandardErrors()
     testColorsAndVisibility()
     print('All tests passed!')
 
