@@ -30,6 +30,9 @@ def formatXTerm(offset):
 
 class Model:
     usesShiftedX = True
+    # True for models fitted in log space, whose uncertainty is
+    # multiplicative in ordinary units
+    usesLogSpace = False
     def __init__(self):
         self.name = 'Model'
         self.paramCount = 0 # number of parameters model should find
@@ -242,6 +245,7 @@ class CustomPolynomialModel(PolynomialModel):
 
 
 class ExponentialModel(Model):
+    usesLogSpace = True
     def __init__(self):
         super().__init__()
         self.name = 'Exponential'
@@ -334,6 +338,7 @@ class ExponentialModel(Model):
 
 class PowerModel(Model):
     usesShiftedX = False
+    usesLogSpace = True
     def __init__(self):
         super().__init__()
         self.name = 'Power'

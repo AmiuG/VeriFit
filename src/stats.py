@@ -346,6 +346,63 @@ def describeResiduals(x_coords, y_coords, residuals):
             warnings.append(warning)
     return warnings
 
+# everything about a model's uncertainty that does not depend on x: the
+# noise estimate and the inverse of A^T A, bundled up for predictionBand
+def bandSetup(model, x_coords, y_coords):
+    if not model.isFitted:
+        return None
+    A = model.designMatrix(x_coords)
+    fitResiduals = model.fitSpaceResiduals(x_coords, y_coords)
+    if A is None or fitResiduals is None or len(A) == 0:
+        return None
+    n, p = len(A), len(A[0])
+    if n - p <= 0:
+        return None
+    squaredError = sumOfSquares(fitResiduals)
+    if squaredError == float('inf'):
+        return None
+    sigmaSquared = squaredError / (n - p)
+    AtA = linalg.multiplyMatrices(linalg.transpose(A), A)
+    inverse = linalg.invert(AtA)
+    if inverse is None:
+        return None
+    return (sigmaSquared, inverse)
+
+# the plausible range for a brand new observation at x: the prediction
+# plus or minus two standard deviations, sigma^2 * (1 + a^T (A^T A)^-1 a).
+# The band widens away from the middle of the data, which is exactly the
+# extrapolation warning drawn as a picture.
+def predictionBand(model, setup, x, spread = 2):
+    if setup is None:
+        return None
+    guess = safePredict(model, x)
+    if guess is None:
+        return None
+    sigmaSquared, inverse = setup
+    rows = model.designMatrix([x])
+    if rows is None or len(rows) == 0:
+        return None
+    row = rows[0]
+    p = len(row)
+    leverage = 0
+    for i in range(p):
+        for j in range(p):
+            leverage += row[i] * inverse[i][j] * row[j]
+    # a negative value can only come from rounding on a near-singular fit
+    if leverage < 0:
+        return None
+    halfWidth = spread * math.sqrt(sigmaSquared * (1 + leverage))
+    if model.usesLogSpace:
+        # the fit lives in log space, so the band is multiplicative and
+        # can never cross zero
+        if halfWidth > 300:
+            return None
+        low = guess * math.exp(-halfWidth)
+        high = guess * math.exp(halfWidth)
+        return (min(low, high), max(low, high))
+    return (guess - halfWidth, guess + halfWidth)
+
+
 def standardErrors(model, x_coords, y_coords):
     if not model.isFitted:
         return None
