@@ -1,5 +1,6 @@
 from cmu_graphics import *
 import math
+import ui
 
 # graphview will soley draw (never edits data, rerun the engine, store values, etc)
 borderColor = rgb(205, 205, 205)
@@ -356,7 +357,7 @@ class GraphView:
             halfWidth = 3 * len(text) + 2
             drawRect(pixelX - halfWidth, labelY - 6, 2 * halfWidth, 12,
                      fill='white', opacity=75)
-            drawLabel(text, pixelX, labelY, size=10, fill=tickLabelColor)
+            drawLabel(text, pixelX, labelY, size=10, fill=tickLabelColor, font=ui.bodyFont)
 
         if self.xMin <= 0 <= self.xMax:
             labelX = max(self.toScreenX(0) - 5, self.left + 38)
@@ -374,7 +375,7 @@ class GraphView:
             drawRect(labelX - width, pixelY - 6, width, 12, fill='white',
                      opacity=75)
             drawLabel(text, labelX, pixelY, size=10, align='right',
-                      fill=tickLabelColor)
+                      fill=tickLabelColor, font=ui.bodyFont)
 
     def drawAxisLines(self):
         if self.xMin <= 0 <= self.xMax:
@@ -413,9 +414,9 @@ class GraphView:
         drawRect(middleX - 190, middleY - 26, 380, 52, fill='white',
                  opacity=85)
         drawLabel('Click anywhere on the graph to add points,',
-                  middleX, middleY - 10, size=14, fill=excludedColor)
+                  middleX, middleY - 10, size=14, fill=excludedColor, font=ui.bodyFont)
         drawLabel('or press s to tour the sample datasets.',
-                  middleX, middleY + 10, size=14, fill=excludedColor)
+                  middleX, middleY + 10, size=14, fill=excludedColor, font=ui.bodyFont)
 
 
     def draw(self, data, analysisEngine = None):
@@ -467,7 +468,7 @@ class ResidualPlot:
         drawRect(self.left,self.top,self.width,self.height, fill='white',
                  border=borderColor)
         drawLabel(message,self.left + self.width/2,self.middle, size=10,
-                  fill=excludedColor)
+                  fill=excludedColor, font=ui.bodyFont)
 
     def draw(self, result, x_coords, xMin, xMax, outlierIndex=None):
         if result is None or result.residuals is None:
@@ -490,8 +491,8 @@ class ResidualPlot:
                     fill=outlierColor if isOutlier else residualDotColor)
 
         drawLabel(f'residuals: {result.model.name}',self.left+4,self.top+9, size=9,
-                    align='left', fill=excludedColor)
+                    align='left', fill=excludedColor, font=ui.bodyFont)
         drawLabel(f'+{formatTick(halfRange, halfRange/4)}',self.left-6,self.top+8, size=9,
-                    align='right', fill=excludedColor)
-        drawLabel('0',self.left-6,self.middle, size=9, align='right', fill=excludedColor)
+                    align='right', fill=excludedColor, font=ui.bodyFont)
+        drawLabel('0',self.left-6,self.middle, size=9, align='right', fill=excludedColor, font=ui.bodyFont)
         drawRect(self.left,self.top,self.width,self.height, fill=None, border=borderColor)

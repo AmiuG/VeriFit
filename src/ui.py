@@ -11,9 +11,12 @@ shadowColor = rgb(226, 228, 232)
 buttonHover = rgb(238, 239, 242)
 tabHover = rgb(229, 229, 229)
 stripeFill = rgb(250, 250, 251)
-# used for headings only. Numbers and dense text stay in the default
-# font, which is easier to read at small sizes.
-displayFont = 'montserrat'
+# The three fonts the app uses. Each one is set in exactly one place, so
+# swapping any of them is a one word change. cmu_graphics also ships
+# quicksand, ubuntu, orbitron, lobster and source code pro, among others.
+bodyFont = 'roboto'          # every number, label and sentence
+displayFont = 'montserrat'   # the small uppercase panel headings
+titleFont = 'quicksand'      # the VeriFit wordmark only
 titleFill = rgb(242, 242, 242)
 textColor = 'black'
 mutedColor = rgb(125, 125, 125)
@@ -108,7 +111,7 @@ class Button:
             drawRect(self.left, self.top, self.width, self.height, fill=fill)
             drawLabel(self.label, self.left + self.width / 2,
                       self.top + self.height / 2, size=11, bold=True,
-                      fill='white')
+                      fill='white', font=bodyFont)
             return
         if pressed:
             fill = buttonDown
@@ -120,7 +123,7 @@ class Button:
                  fill=fill, border=panelBorder)
         drawLabel(self.label, self.left + self.width / 2,
                   self.top + self.height / 2, size=11,
-                  fill=textColor if enabled else mutedColor)
+                  fill=textColor if enabled else mutedColor, font=bodyFont)
 
 class TabBar:
     height = 22
@@ -159,7 +162,7 @@ class TabBar:
                 drawRect(left, self.top, self.tabWidth, 2, fill=accentColor)
             drawLabel(label, left + self.tabWidth / 2,
                       self.top + TabBar.height / 2, size=11,
-                      bold=isActive, fill=textColor if isActive else mutedColor)
+                      bold=isActive, fill=textColor if isActive else mutedColor, font=bodyFont)
         # erase the seam under the open tab so the tabs and the panel
         # below them read as one piece
         for i in range(len(self.tabs)):
@@ -201,13 +204,13 @@ class Slider:
 
     def draw(self, name, value, low, high, isAdjusted):
         drawLabel(name, self.left, self.top, size=10, align='left',
-                  fill=textColor)
+                  fill=textColor, font=bodyFont)
         drawRect(self.trackLeft, self.top - Slider.trackHeight / 2,
                  self.trackWidth, Slider.trackHeight, fill=sliderTrack)
         drawCircle(self.knobX(value, low, high), self.top, Slider.knobRadius,
                    fill=errorColor if isAdjusted else sliderKnob)
         drawLabel(formatScore(value, 4), self.left + self.width, self.top,
-                  size=10, align='right', fill=mutedColor)
+                  size=10, align='right', fill=mutedColor, font=bodyFont)
 
 # ----------------------------------------------------------------------
 # THE DATA TABLE
@@ -432,13 +435,13 @@ class DataTable:
     def drawHeader(self):
         top = self.panel.contentTop()
         drawLabel('#', self.markLeft + DataTable.markWidth / 2,
-                  top + DataTable.headerHeight / 2, size=10, fill=mutedColor)
+                  top + DataTable.headerHeight / 2, size=10, fill=mutedColor, font=bodyFont)
         drawLabel('x', self.xLeft + self.valueWidth - 8,
                   top + DataTable.headerHeight / 2, size=10, bold=True,
-                  align='right')
+                  align='right', font=bodyFont)
         drawLabel('y', self.yLeft + self.valueWidth - 8,
                   top + DataTable.headerHeight / 2, size=10, bold=True,
-                  align='right')
+                  align='right', font=bodyFont)
         drawLine(self.markLeft, self.rowsTop,
                  self.deleteLeft + DataTable.deleteWidth, self.rowsTop,
                  fill=panelBorder)
@@ -461,18 +464,18 @@ class DataTable:
         if isDraft:
             drawLabel('+', self.markLeft + DataTable.markWidth / 2,
                       top + DataTable.rowHeight / 2, size=12, bold=True,
-                      fill=accentColor)
+                      fill=accentColor, font=bodyFont)
         else:
             drawLabel(str(row + 1), self.markLeft + DataTable.markWidth / 2,
                       top + DataTable.rowHeight / 2, size=10,
-                      fill=mutedColor if not excluded else errorColor)
+                      fill=mutedColor if not excluded else errorColor, font=bodyFont)
 
         self.drawCell(row, 0, self.xLeft, top, data, isDraft, excluded)
         self.drawCell(row, 1, self.yLeft, top, data, isDraft, excluded)
 
         if not isDraft:
             drawLabel('x', self.deleteLeft + DataTable.deleteWidth / 2,
-                      top + DataTable.rowHeight / 2, size=10, fill=mutedColor)
+                      top + DataTable.rowHeight / 2, size=10, fill=mutedColor, font=bodyFont)
 
     def drawCell(self, row, col, left, top, data, isDraft, excluded):
         editing = self.isEditing() and self.editRow == row and self.editCol == col
@@ -482,7 +485,7 @@ class DataTable:
             # the caret follows the text, so keep this one left aligned
             drawLabel(self.currNum + '|', left + 5,
                       top + DataTable.rowHeight / 2, size=11, align='left',
-                      fill=textColor)
+                      fill=textColor, font=bodyFont)
             return
         text = self.currentText(row, col, data)
         if text == '':
@@ -491,7 +494,7 @@ class DataTable:
         # numbers line up on their last digit, which is far easier to scan
         drawLabel(text, left + self.valueWidth - 8,
                   top + DataTable.rowHeight / 2, size=11, align='right',
-                  fill=fill)
+                  fill=fill, font=bodyFont)
 
     def drawFooter(self, data):
         top = self.panel.bottom - DataTable.footerHeight
@@ -499,21 +502,21 @@ class DataTable:
                  top, fill=panelBorder)
         if self.errorMessage != '':
             drawLabel(self.errorMessage, self.markLeft, top + 11,
-                      size=10, align='left', fill=errorColor)
+                      size=10, align='left', fill=errorColor, font=bodyFont)
             drawLabel('Esc cancels', self.markLeft, top + 23,
-                      size=9, align='left', fill=mutedColor)
+                      size=9, align='left', fill=mutedColor, font=bodyFont)
         elif self.isEditing():
             drawLabel('comma or enter = next cell', self.markLeft, top + 11,
-                      size=9, align='left', fill=mutedColor)
+                      size=9, align='left', fill=mutedColor, font=bodyFont)
             drawLabel('esc cancels, click x deletes', self.markLeft, top + 23,
-                      size=9, align='left', fill=mutedColor)
+                      size=9, align='left', fill=mutedColor, font=bodyFont)
         else:
             active = data.getActiveCount()
             drawLabel(f'{len(data.points)} rows, {active} active',
                       self.markLeft, top + 11, size=10, align='left',
-                      fill=mutedColor)
+                      fill=mutedColor, font=bodyFont)
             drawLabel('click a cell to edit, # to exclude', self.markLeft,
-                      top + 23, size=9, align='left', fill=mutedColor)
+                      top + 23, size=9, align='left', fill=mutedColor, font=bodyFont)
 
 def wrapText(text, maxChars):
     words = text.split(' ')
@@ -591,7 +594,7 @@ class ModelCards:
                   bold=True, fill=accentColor, font=displayFont)
         y = top + 18
         for line in lines:
-            drawLabel(line, self.left + 4, y, size=9, align='left')
+            drawLabel(line, self.left + 4, y, size=9, align='left', font=bodyFont)
             y += 10
 
     # the dataset's own cautions (too few points, repeated x-values) sit
@@ -620,7 +623,7 @@ class ModelCards:
                  fill=warningFill, border=panelBorder)
         y = top + 8
         for line in lines:
-            drawLabel(line, self.left + 4, y, size=9, align='left')
+            drawLabel(line, self.left + 4, y, size=9, align='left', font=bodyFont)
             y += 10
 
     # (index, top, totalHeight) for every result
@@ -684,10 +687,10 @@ class ModelCards:
         if len(analysisEngine.results) == 0:
             drawLabel('No model fitted yet.', self.left,
                       self.panel.contentTop() + 16, size=11, align='left',
-                      fill=mutedColor)
+                      fill=mutedColor, font=bodyFont)
             drawLabel('Add points, or try a sample above.', self.left,
                       self.panel.contentTop() + 32, size=11, align='left',
-                      fill=mutedColor)
+                      fill=mutedColor, font=bodyFont)
             return
 
         self.drawVerdict(analysisEngine)
@@ -720,26 +723,26 @@ class ModelCards:
                      fill=None, border=mutedColor)
 
         drawLabel(f'{index + 1}. {result.model.name}', self.left + 16, middle,
-                  size=11, align='left', bold=(index == self.expandedIndex))
+                  size=11, align='left', bold=(index == self.expandedIndex), font=bodyFont)
         drawLabel(formatScore(result.cvRmse), self.left + self.width, middle,
-                  size=11, align='right', fill=mutedColor)
+                  size=11, align='right', fill=mutedColor, font=bodyFont)
 
     def drawDetail(self, result, top):
         y = top + 8
         for line in wrapText(result.getEquation(), ModelCards.wrapWidth):
-            drawLabel(line, self.left + 16, y, size=10, align='left')
+            drawLabel(line, self.left + 16, y, size=10, align='left', font=bodyFont)
             y += ModelCards.lineHeight
 
         drawLabel(f'training RMSE {formatScore(result.trainRmse)}     '
                   f'R2 {formatScore(result.r2)}',
-                  self.left + 16, y, size=9, align='left', fill=mutedColor)
+                  self.left + 16, y, size=9, align='left', fill=mutedColor, font=bodyFont)
         y += ModelCards.lineHeight
 
         # an akaike weight is a share of support, so a bar reads faster
         # than the number on its own
         if result.akaikeWeight is None:
             drawLabel('AICc n/a: too few points for this many parameters',
-                      self.left + 16, y, size=9, align='left', fill=mutedColor)
+                      self.left + 16, y, size=9, align='left', fill=mutedColor, font=bodyFont)
         else:
             barWidth = 84
             drawRect(self.left + 16, y - 4, barWidth, 8, fill=titleFill)
@@ -750,18 +753,18 @@ class ModelCards:
                      fill=mutedColor)
             drawLabel(f'{result.akaikeWeight * 100:.0f}% of AICc support',
                       self.left + 16 + barWidth + 8, y, size=9, align='left',
-                      fill=mutedColor)
+                      fill=mutedColor, font=bodyFont)
         y += ModelCards.lineHeight + 2
 
         if result.isAdjusted():
             drawLabel('adjusted by hand: CV and AICc no longer apply',
-                      self.left + 16, y, size=9, align='left', fill=errorColor)
+                      self.left + 16, y, size=9, align='left', fill=errorColor, font=bodyFont)
             y += ModelCards.lineHeight
 
         for warning in result.interpretations:
             for line in wrapText(warning, ModelCards.wrapWidth):
                 drawLabel(line, self.left + 16, y, size=9, align='left',
-                          fill=errorColor)
+                          fill=errorColor, font=bodyFont)
                 y += 10
             y += 4
 
@@ -771,11 +774,11 @@ class ModelCards:
         y = self.panel.bottom - 12
         for name, reason in analysisEngine.unavailable:
             drawLabel(f'{name}: {reason}'[:48], self.left, y, size=9,
-                      align='left', fill=mutedColor)
+                      align='left', fill=mutedColor, font=bodyFont)
             y -= 11
         if len(analysisEngine.unavailable) > 0:
             drawLabel('not fitted', self.left, y, size=9, align='left',
-                      bold=True, fill=mutedColor)
+                      bold=True, fill=mutedColor, font=bodyFont)
     ########################################################################
 
 # the Sample button in the header. Clicking it drops down one button per
@@ -875,19 +878,19 @@ class HelpOverlay:
                   align='left', font=displayFont)
         y += 22
         for line in HelpOverlay.about:
-            drawLabel(line, x, y, size=11, align='left')
+            drawLabel(line, x, y, size=11, align='left', font=bodyFont)
             y += 16
         y += 14
         drawLabel('Shortcuts', x, y, size=13, bold=True, align='left',
                   font=displayFont)
         y += 22
         for keys, what in HelpOverlay.shortcuts:
-            drawLabel(keys, x, y, size=11, bold=True, align='left')
-            drawLabel(what, x + 100, y, size=11, align='left')
+            drawLabel(keys, x, y, size=11, bold=True, align='left', font=bodyFont)
+            drawLabel(what, x + 100, y, size=11, align='left', font=bodyFont)
             y += 17
         drawLabel('press any key or click anywhere to close', x,
                   self.top + HelpOverlay.cardHeight - 16, size=10,
-                  align='left', fill=mutedColor)
+                  align='left', fill=mutedColor, font=bodyFont)
 
 
 class PredictPanel:
@@ -939,21 +942,21 @@ class PredictPanel:
 
     def draw(self, data, analysisEngine, result, colorForResult):
         drawLabel('x =', self.left, self.boxTop + self.boxHeight / 2, size=11,
-                  align='left')
+                  align='left', font=bodyFont)
         drawRect(self.boxLeft, self.boxTop, self.boxWidth, self.boxHeight,
                  fill=editFill if self.isEditing else 'white',
                  border=panelBorder)
         shown = self.buffer + ('|' if self.isEditing else '')
         drawLabel(shown, self.boxLeft + 5, self.boxTop + self.boxHeight / 2,
-                  size=11, align='left')
+                  size=11, align='left', font=bodyFont)
         drawLabel('or drag on the graph',
                   self.boxLeft + self.boxWidth + 10,
                   self.boxTop + self.boxHeight / 2, size=9, align='left',
-                  fill=mutedColor)
+                  fill=mutedColor, font=bodyFont)
 
         if self.value is None:
             drawLabel('Type an x value to predict at.', self.left,
-                      self.top + 44, size=10, align='left', fill=mutedColor)
+                      self.top + 44, size=10, align='left', fill=mutedColor, font=bodyFont)
             return
 
         # one line per visible model, so competing predictions can be
@@ -966,28 +969,28 @@ class PredictPanel:
             guess = analysisEngine.predictAt(candidate, self.value)
             text = 'cannot predict here' if guess is None else formatScore(guess, 3)
             drawLabel(f'{candidate.model.name}', self.left, y, size=10,
-                      align='left', fill=colorForResult(candidate))
-            drawLabel(f'y = {text}', self.left + 96, y, size=10, align='left')
+                      align='left', fill=colorForResult(candidate), font=bodyFont)
+            drawLabel(f'y = {text}', self.left + 96, y, size=10, align='left', font=bodyFont)
             band = analysisEngine.bandAt(candidate, self.value)
             if band is not None:
                 drawLabel(f'likely {formatScore(band[0], 3)} '
                           f'to {formatScore(band[1], 3)}',
                           self.left + 210, y, size=10, align='left',
-                          fill=mutedColor)
+                          fill=mutedColor, font=bodyFont)
             y += 14
             shownAny = True
         if not shownAny:
             drawLabel('No curve is switched on.', self.left, y, size=10,
-                      align='left', fill=mutedColor)
+                      align='left', fill=mutedColor, font=bodyFont)
 
         if data.isExtrapolation(self.value):
             boxLeft = self.left + self.width - 210
             drawRect(boxLeft, self.top + 2, 204, 32,
                      fill=warningFill, border=errorColor)
             drawLabel('outside the data range', boxLeft + 8,
-                      self.top + 12, size=10, align='left', fill=errorColor)
+                      self.top + 12, size=10, align='left', fill=errorColor, font=bodyFont)
             drawLabel('watch the bands widen out here', boxLeft + 8,
-                      self.top + 26, size=9, align='left', fill=mutedColor)
+                      self.top + 26, size=9, align='left', fill=mutedColor, font=bodyFont)
 
 class SensitivityPanel:
     rowGap = 22
@@ -1043,18 +1046,18 @@ class SensitivityPanel:
     def draw(self, result):
         if result is None:
             drawLabel('Select a model first.', self.left, self.top + 14,
-                      size=10, align='left', fill=mutedColor)
+                      size=10, align='left', fill=mutedColor, font=bodyFont)
             return
         if result.parameterBounds is None:
             drawLabel('No standard errors for this model.', self.left,
-                      self.top + 14, size=10, align='left', fill=mutedColor)
+                      self.top + 14, size=10, align='left', fill=mutedColor, font=bodyFont)
             drawLabel('It needs more points than it has parameters.',
                       self.left, self.top + 28, size=9, align='left',
-                      fill=mutedColor)
+                      fill=mutedColor, font=bodyFont)
             return
 
         drawLabel(f'{result.model.name}: drag within plus or minus 2 standard errors',
-                  self.left, self.top+6, size=9, align='left', fill=mutedColor)
+                  self.left, self.top+6, size=9, align='left', fill=mutedColor, font=bodyFont)
         for i in range(self.usableCount(result)):
             low, high = result.parameterBounds[i]
             self.sliders[i].draw(self.parameterName(result, i),
@@ -1064,7 +1067,7 @@ class SensitivityPanel:
         if result.isAdjusted():
             drawLabel('dashed line is the original fit', self.left,
                       self.top + 14 + self.usableCount(result) * SensitivityPanel.rowGap,
-                      size=9, align='left', fill=errorColor)
+                      size=9, align='left', fill=errorColor, font=bodyFont)
 
 # Outlier influence. One bar per point, on the same x axis as the graph
 # above, so a tall bar sits directly under the point that caused it.
@@ -1098,32 +1101,32 @@ class InfluencePanel:
         if len(changers) == 0:
             drawLabel(f'{winner} stays the best model no matter which single '
                       f'point is removed.', self.left, self.top + 8, size=10,
-                      align='left')
+                      align='left', font=bodyFont)
             drawLabel('The ranking does not depend on any one point.',
                       self.left, self.top + 22, size=9, align='left',
-                      fill=mutedColor)
+                      fill=mutedColor, font=bodyFont)
             return
         first = changers[0]
         drawLabel(f'Removing row {first.row + 1} changes the best model from '
                   f'{winner} to {first.winner}.', self.left, self.top + 8,
-                  size=10, align='left', fill=influenceAlertColor)
+                  size=10, align='left', fill=influenceAlertColor, font=bodyFont)
         if len(changers) == 1:
             drawLabel('The conclusion rests on that one point. Try excluding it.',
                       self.left, self.top + 22, size=9, align='left',
-                      fill=mutedColor)
+                      fill=mutedColor, font=bodyFont)
         else:
             rows = []
             for entry in changers:
                 rows.append(str(entry.row + 1))
             drawLabel(f'{len(changers)} points change the answer on their own: '
                       f'rows {", ".join(rows)}.', self.left, self.top + 22,
-                      size=9, align='left', fill=mutedColor)
+                      size=9, align='left', fill=mutedColor, font=bodyFont)
 
     def draw(self, sweep, data, xMin, xMax):
         if sweep is None:
             drawLabel('Not enough points yet - the sweep needs at least four.',
                       self.left, self.top + 20, size=10, align='left',
-                      fill=mutedColor)
+                      fill=mutedColor, font=bodyFont)
             return
         winner, report = sweep
         self.drawVerdict(winner, report)
@@ -1151,10 +1154,10 @@ class InfluencePanel:
             if entry.changesWinner:
                 drawLabel(str(entry.row + 1), pixelX,
                           self.barsBottom - barHeight - 7, size=9,
-                          fill=influenceAlertColor)
+                          fill=influenceAlertColor, font=bodyFont)
         drawLabel('how much the winner\'s error moves when each point is dropped',
                   self.left, self.barsBottom + 7, size=9, align='left',
-                  fill=mutedColor)
+                  fill=mutedColor, font=bodyFont)
 
 
 ########################################################################
@@ -1194,13 +1197,13 @@ class RSquaredPanel:
         byCv = self.rankedBy(analysisEngine.results, False)
         if len(byR2) == 0 or len(byCv) == 0:
             drawLabel('No scores to compare yet.', self.left, self.top + 20,
-                      size=10, align='left', fill=mutedColor)
+                      size=10, align='left', fill=mutedColor, font=bodyFont)
             return
 
         drawLabel('ranked by R2', self.leftColumn, self.top + 10, size=9,
-                  align='right', fill=mutedColor)
+                  align='right', fill=mutedColor, font=bodyFont)
         drawLabel('ranked by CV RMSE', self.rightColumn + 6, self.top + 10,
-                  size=9, align='left', fill=mutedColor)
+                  size=9, align='left', fill=mutedColor, font=bodyFont)
 
         # join each model to itself; a crossing line is a disagreement
         for leftIndex in range(len(byR2)):
@@ -1219,22 +1222,22 @@ class RSquaredPanel:
             result = byR2[index]
             drawLabel(f'{result.model.name} {formatScore(result.r2, 3)}',
                       self.leftColumn, self.rowY(index, len(byR2)), size=9,
-                      align='right', fill=colorForResult(result))
+                      align='right', fill=colorForResult(result), font=bodyFont)
         for index in range(len(byCv)):
             result = byCv[index]
             drawLabel(f'{result.model.name} {formatScore(result.cvRmse, 3)}',
                       self.rightColumn + 6, self.rowY(index, len(byCv)),
-                      size=9, align='left', fill=colorForResult(result))
+                      size=9, align='left', fill=colorForResult(result), font=bodyFont)
 
         if len(byR2) > 0 and len(byCv) > 0 and byR2[0] is not byCv[0]:
             drawLabel(f'R2 prefers {byR2[0].model.name}, cross-validation '
                       f'prefers {byCv[0].model.name}.',
                       self.left, self.top + self.height, size=9,
-                      align='left', fill=errorColor)
+                      align='left', fill=errorColor, font=bodyFont)
         else:
             drawLabel('Both statistics agree on the winner here.', self.left,
                       self.top + self.height - 6, size=9, align='left',
-                      fill=mutedColor)
+                      fill=mutedColor, font=bodyFont)
             
 
 # ======================================================================
@@ -1424,17 +1427,17 @@ class WindowControls:
             name = 'x' if row == 0 else 'y'
             middle = self.boxTop(row * 2) + WindowControls.boxHeight / 2
             drawLabel(f'< {name} <', signLeft + WindowControls.signWidth / 2,
-                      middle, size=12, bold=True)
+                      middle, size=12, bold=True, font=bodyFont)
 
         if self.errorMessage != '':
             drawLabel(self.errorMessage, self.left + WindowControls.padding,
                       self.top + self.height - 4, size=9, align='left',
-                      fill=errorColor)
+                      fill=errorColor, font=bodyFont)
         else:
             drawLabel('tab moves on, enter applies, esc closes',
                       self.left + WindowControls.padding,
                       self.top + self.height - 4, size=9, align='left',
-                      fill=mutedColor)
+                      fill=mutedColor, font=bodyFont)
 
     def drawBox(self, graph, index):
         left, top = self.boxLeft(index), self.boxTop(index)
@@ -1448,5 +1451,5 @@ class WindowControls:
         else:
             text = self.currentText(graph, index)
         drawLabel(text, left + 5, top + WindowControls.boxHeight / 2,
-                  size=11, align='left')
+                  size=11, align='left', font=bodyFont)
 ########################################################################

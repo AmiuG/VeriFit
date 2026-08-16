@@ -371,14 +371,14 @@ def drawHeader(app):
     # the exclamation mark carries the accent color, and is the only part
     # of the title that is not near black. The name ends exactly where the
     # mark begins, so the two always meet however wide the font renders.
-    joinX = margin + 78
-    drawLabel('VeriFit', joinX, 16, size=21, bold=True, align='right',
-              fill=rgb(25, 30, 38), font=ui.displayFont)
-    drawLabel('!', joinX, 16, size=21, bold=True, align='left',
-              fill=ui.accentColor, font=ui.displayFont)
+    joinX = margin + 76
+    drawLabel('VeriFit', joinX, 16, size=22, bold=True, align='right',
+              fill=rgb(25, 30, 38), font=ui.titleFont)
+    drawLabel('!', joinX + 3, 16, size=22, bold=True, align='left',
+              fill=ui.accentColor, font=ui.titleFont)
     drawLabel('fitting data is not the same as predicting it',
-              joinX + 24, 18, size=11, align='left', italic=True,
-              fill=ui.mutedColor)
+              joinX + 28, 18, size=11, align='left', italic=True,
+              fill=ui.mutedColor, font=ui.bodyFont)
     for button in app.buttons:
         button.draw(pressed=(button is app.pressedButton),
                     hovered=button.contains(app.mouseX, app.mouseY))
@@ -428,10 +428,10 @@ def drawGraphPanel(app):
     except Exception as failure:
         drawLabel('a view raised:', app.graphPanel.left + 14,
                   app.graphPanel.contentTop() + 20, size=12, bold=True,
-                  align='left', fill=ui.errorColor)
+                  align='left', fill=ui.errorColor, font=ui.bodyFont)
         drawLabel(f'{type(failure).__name__}: {failure}',
                   app.graphPanel.left + 14, app.graphPanel.contentTop() + 40,
-                  size=10, align='left', fill=ui.errorColor)
+                  size=10, align='left', fill=ui.errorColor, font=ui.bodyFont)
 
 
 def redrawAll(app):
@@ -455,7 +455,7 @@ def redrawAll(app):
              fill=ui.panelBorder, lineWidth=1)
     drawLabel(f'{app.status}    x-offset: {offsetText}',
               margin, windowHeight - margin / 2, size=10, align='left',
-              fill=ui.mutedColor)
+              fill=ui.mutedColor, font=ui.bodyFont)
 
     # the open sample menu and the overlay go on last, above the panels
     app.samples.drawMenu(app.sampleIndex, app.mouseX, app.mouseY)
