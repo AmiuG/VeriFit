@@ -196,7 +196,7 @@ def onMousePress(app, mouseX, mouseY):
         result = app.engine.results[index]
         if kind == 'toggle':
             # the swatch controls whether this curve is on the graph
-            result.isVisible = not result.isVisible
+            app.engine.setVisible(result, not result.isVisible)
             app.status = f'{result.model.name} curve ' + \
                          ('shown.' if result.isVisible else 'hidden.')
         else:

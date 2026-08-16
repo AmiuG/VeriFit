@@ -69,6 +69,8 @@ class AnalysisEngine:
         self.results = []
         self.unavailable = []
         self.tieMessage = str()
+        # show/hide choices, remembered by model name so they survive refits
+        self.visibleByName = {}
 
     # pick what llist of x-values a model should be fitted on
     # polynomials are okay if x values are shifter, but it's not for power and logarithmic
@@ -251,8 +253,16 @@ class AnalysisEngine:
             # the color follows the model itself rather than its rank, so a
             # curve never changes color just because the ranking moved
             result.colorIndex = self.candidates.index(result.model)
-            # top three models are visible
-            result.isVisible = True if (i < 3) else False
+            name = result.model.name
+            if name not in self.visibleByName:
+                # a model's first appearance: the top three start visible
+                self.visibleByName[name] = (i < 3)
+            result.isVisible = self.visibleByName[name]
+
+    # the swatch toggle goes through here so the choice is remembered
+    def setVisible(self, result, isVisible):
+        result.isVisible = isVisible
+        self.visibleByName[result.model.name] = isVisible
 
     # detect if the best model and second model are technically tied
     # then, it will recommend whichever is simpler
