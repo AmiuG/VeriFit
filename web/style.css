@@ -451,6 +451,56 @@ dialog p { margin: 0 0 10px; font-size: 13.5px; }
 }
 
 .dialogButtons { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+
+/* the window dialog reads the way the bounds read out loud */
+.windowRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  justify-content: center;
+}
+
+.windowRow input {
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  width: 120px;
+  text-align: right;
+}
+
+.windowRow span { font-weight: 700; min-width: 54px; text-align: center; }
+
+.field { display: block; margin-bottom: 10px; font-size: 13px; }
+
+.field input {
+  display: block;
+  width: 100%;
+  font: inherit;
+  padding: 6px 8px;
+  margin-top: 3px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+/* the x and y column headings double as buttons for naming the axes */
+.axisHeader {
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+  text-align: right;
+}
+
+.axisHeader:hover { background: var(--faint); color: var(--accent); }
 .fileLabel { font-size: 12.5px; color: var(--accent); cursor: pointer; }
 .fileLabel input { display: none; }
 

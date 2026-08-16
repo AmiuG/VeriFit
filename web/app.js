@@ -38,6 +38,28 @@ let selectedName = null; // which model's card is open
 let undoStack = [];
 let view = { xMin: 0, xMax: 10, yMin: 0, yMax: 10 };
 
+// What the two axes are called. The label is drawn beside the graph, the
+// symbol and unit head the data table. Everything starts blank, so an
+// unnamed graph carries no labels at all.
+let axes = {
+  x: { label: '', symbol: '', unit: '' },
+  y: { label: '', symbol: '', unit: '' }
+};
+
+// 'Time since release (s)', or nothing when the axis has no name
+function axisTitle(which) {
+  const axis = axes[which];
+  if (axis.label === '') return '';
+  return axis.unit === '' ? axis.label : `${axis.label} (${axis.unit})`;
+}
+
+// what heads the column in the data table: the symbol, or plain x and y
+function axisHeading(which) {
+  const axis = axes[which];
+  const symbol = axis.symbol === '' ? which : axis.symbol;
+  return axis.unit === '' ? symbol : `${symbol} (${axis.unit})`;
+}
+
 
 // ---------------------------------------------------------------
 // small helpers
@@ -149,6 +171,7 @@ function analyze(options = {}) {
     selectedName = latest.results.length > 0 ? latest.results[0].name : null;
   }
   if (!options.keepTable) renderTable();
+  renderHeaders();
   renderFooter();
   renderVerdict();
   renderWarnings();
@@ -373,6 +396,11 @@ function parseNumber(text) {
   return value;
 }
 
+function renderHeaders() {
+  byId('xHeader').textContent = axisHeading('x');
+  byId('yHeader').textContent = axisHeading('y');
+}
+
 function renderFooter() {
   const active = points.filter(p => !p.excluded).length;
   let text = `${points.length} rows, ${active} active`;
@@ -549,7 +577,14 @@ function reframe() {
   drawGraph();
 }
 
+// the margins around the plot. They grow to make room for an axis label
+// when there is one, and shrink back when there is not.
 const PAD = { left: 48, right: 16, top: 14, bottom: 32 };
+
+function updatePadding() {
+  PAD.left = axisTitle('y') === '' ? 48 : 68;
+  PAD.bottom = axisTitle('x') === '' ? 32 : 52;
+}
 
 function graphMetrics() {
   const canvas = byId('graph');
@@ -599,6 +634,7 @@ function ticksBetween(low, high, step) {
 }
 
 function drawGraph() {
+  updatePadding();
   const m = graphMetrics();
   const ratio = window.devicePixelRatio || 1;
   m.canvas.width = m.width * ratio;
@@ -645,6 +681,7 @@ function drawGraph() {
   ctx.restore();
 
   drawTickLabels(ctx, m, xStep, yStep);
+  drawAxisTitles(ctx, m);
 
   ctx.strokeStyle = '#cdd1d6';
   ctx.strokeRect(PAD.left + 0.5, PAD.top + 0.5,
@@ -690,6 +727,30 @@ function drawTickLabels(ctx, m, xStep, yStep) {
   ctx.textAlign = 'right';
   for (const y of ticksBetween(view.yMin, view.yMax, yStep)) {
     ctx.fillText(trimNumber(y), PAD.left - 7, toScreenY(y, m) + 4);
+  }
+}
+
+// the axis names, drawn only when they have been given one. The y title
+// is turned on its side, the way it is written on graph paper.
+function drawAxisTitles(ctx, m) {
+  ctx.fillStyle = '#3c4148';
+  ctx.font = '12px Ubuntu, sans-serif';
+
+  const xTitle = axisTitle('x');
+  if (xTitle !== '') {
+    ctx.textAlign = 'center';
+    ctx.fillText(xTitle, PAD.left + (m.width - PAD.left - PAD.right) / 2,
+                 m.height - 8);
+  }
+
+  const yTitle = axisTitle('y');
+  if (yTitle !== '') {
+    ctx.save();
+    ctx.translate(16, PAD.top + (m.height - PAD.top - PAD.bottom) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillText(yTitle, 0, 0);
+    ctx.restore();
   }
 }
 
@@ -838,8 +899,20 @@ function connectGraph() {
     // point where it landed
     if (moved > 5) return;
     const m = graphMetrics();
-    if (event.offsetX < PAD.left || event.offsetX > m.width - PAD.right) return;
-    if (event.offsetY < PAD.top || event.offsetY > m.height - PAD.bottom) return;
+    const acrossPlot = event.offsetX >= PAD.left &&
+                       event.offsetX <= m.width - PAD.right;
+    const downPlot = event.offsetY >= PAD.top &&
+                     event.offsetY <= m.height - PAD.bottom;
+    // the margins are not part of the graph, so a click there is asking
+    // about the axis beside it rather than adding a point
+    if (!acrossPlot || !downPlot) {
+      if (acrossPlot && event.offsetY > m.height - PAD.bottom) {
+        openAxisDialog('x');
+      } else if (downPlot && event.offsetX < PAD.left) {
+        openAxisDialog('y');
+      }
+      return;
+    }
     remember();
     points.push({
       x: Math.round(toDataX(event.offsetX, m) * 10000) / 10000,
@@ -1310,12 +1383,105 @@ function connectDialogs() {
     byId('csvMessage').textContent = `read ${file.name}`;
   });
 
+  connectWindowDialog();
+  connectAxisDialog();
+
   const helpDialog = byId('helpDialog');
   byId('helpButton').addEventListener('click', () => helpDialog.showModal());
   byId('helpClose').addEventListener('click', () => helpDialog.close());
 
   byId('shareButton').addEventListener('click', shareLink);
   byId('imageButton').addEventListener('click', saveImage);
+}
+
+// ---------------------------------------------------------------
+// typing the window bounds, and naming the axes
+// ---------------------------------------------------------------
+
+function fillWindowBoxes() {
+  byId('xMinBox').value = trimNumber(view.xMin);
+  byId('xMaxBox').value = trimNumber(view.xMax);
+  byId('yMinBox').value = trimNumber(view.yMin);
+  byId('yMaxBox').value = trimNumber(view.yMax);
+  byId('windowMessage').textContent = '';
+}
+
+function connectWindowDialog() {
+  const dialog = byId('windowDialog');
+  byId('windowButton').addEventListener('click', () => {
+    fillWindowBoxes();
+    dialog.showModal();
+  });
+  byId('windowCancel').addEventListener('click', () => dialog.close());
+  byId('windowFit').addEventListener('click', () => {
+    reframe();
+    fillWindowBoxes();
+  });
+  byId('windowApply').addEventListener('click', () => {
+    const wanted = {
+      xMin: parseNumber(byId('xMinBox').value),
+      xMax: parseNumber(byId('xMaxBox').value),
+      yMin: parseNumber(byId('yMinBox').value),
+      yMax: parseNumber(byId('yMaxBox').value)
+    };
+    const message = byId('windowMessage');
+    message.className = 'small alert';
+    for (const key of ['xMin', 'xMax', 'yMin', 'yMax']) {
+      if (wanted[key] === null) {
+        message.textContent = 'All four boxes need a number.';
+        return;
+      }
+    }
+    // a backwards window would quietly turn the graph inside out
+    if (wanted.xMax <= wanted.xMin) {
+      message.textContent = 'The left edge of x must be below the right one.';
+      return;
+    }
+    if (wanted.yMax <= wanted.yMin) {
+      message.textContent = 'The bottom edge of y must be below the top one.';
+      return;
+    }
+    view = wanted;
+    dialog.close();
+    drawGraph();
+    renderTab();
+  });
+}
+
+// which axis the dialog is currently editing
+let editingAxis = 'x';
+
+function openAxisDialog(which) {
+  editingAxis = which;
+  byId('axisTitle').textContent = `Name the ${which} axis`;
+  byId('axisLabel').value = axes[which].label;
+  byId('axisSymbol').value = axes[which].symbol;
+  byId('axisUnit').value = axes[which].unit;
+  byId('axisDialog').showModal();
+  byId('axisLabel').focus();
+}
+
+function applyAxisNames(label, symbol, unit) {
+  axes[editingAxis] = {
+    label: label.trim(),
+    symbol: symbol.trim(),
+    unit: unit.trim()
+  };
+  byId('axisDialog').close();
+  renderHeaders();
+  drawGraph();
+}
+
+function connectAxisDialog() {
+  byId('xHeader').addEventListener('click', () => openAxisDialog('x'));
+  byId('yHeader').addEventListener('click', () => openAxisDialog('y'));
+  byId('axisCancel').addEventListener('click',
+                                     () => byId('axisDialog').close());
+  byId('axisClear').addEventListener('click', () => applyAxisNames('', '', ''));
+  byId('axisApply').addEventListener('click', () => {
+    applyAxisNames(byId('axisLabel').value, byId('axisSymbol').value,
+                   byId('axisUnit').value);
+  });
 }
 
 function pointsAsText() {
@@ -1357,7 +1523,12 @@ function parseTable(text) {
 function shareLink() {
   const packed = points.map(p =>
     `${trimNumber(p.x)}:${trimNumber(p.y)}${p.excluded ? 'x' : ''}`).join(',');
-  const url = `${location.origin}${location.pathname}#d=${encodeURIComponent(packed)}`;
+  let url = `${location.origin}${location.pathname}#d=${encodeURIComponent(packed)}`;
+  // axis names ride along too, so a shared graph arrives already labelled
+  if (axisTitle('x') !== '' || axisTitle('y') !== '' ||
+      axes.x.symbol !== '' || axes.y.symbol !== '') {
+    url += `&a=${encodeURIComponent(JSON.stringify(axes))}`;
+  }
   navigator.clipboard.writeText(url).then(
     () => flashButton('shareButton', 'Link copied'),
     () => window.prompt('Copy this link:', url)
@@ -1377,6 +1548,25 @@ function loadFromLink() {
     collected.push({ x, y, excluded });
   }
   if (collected.length === 0) return false;
+
+  const names = location.hash.match(/[#&]a=([^&]+)/);
+  if (names) {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(names[1]));
+      for (const which of ['x', 'y']) {
+        if (!parsed[which]) continue;
+        axes[which] = {
+          label: String(parsed[which].label || '').slice(0, 60),
+          symbol: String(parsed[which].symbol || '').slice(0, 12),
+          unit: String(parsed[which].unit || '').slice(0, 12)
+        };
+      }
+    } catch (error) {
+      // a damaged link should still show its points, just unlabelled
+      console.warn('could not read the axis names from the link', error);
+    }
+  }
+
   points = collected;
   markActiveSample(-1);
   analyze();

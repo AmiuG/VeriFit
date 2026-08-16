@@ -48,7 +48,14 @@
       <div class="tableWrap">
         <table id="dataTable">
           <thead>
-            <tr><th class="markCol">#</th><th>x</th><th>y</th><th></th></tr>
+            <tr>
+              <th class="markCol">#</th>
+              <th><button class="axisHeader" id="xHeader"
+                          title="name this axis">x</button></th>
+              <th><button class="axisHeader" id="yHeader"
+                          title="name this axis">y</button></th>
+              <th></th>
+            </tr>
           </thead>
           <tbody id="dataBody"></tbody>
         </table>
@@ -63,10 +70,12 @@
 
     <section class="card graphCard">
       <h2>Graph
+        <button id="windowButton" class="tiny" title="type exact bounds for the graph">Window</button>
         <button id="reframeButton" class="tiny" title="frame the window around the data">Reframe</button>
       </h2>
       <canvas id="graph"></canvas>
-      <p class="muted small hint">Click the graph to add a point. Drag to pan, scroll to zoom.</p>
+      <p class="muted small hint">Click the graph to add a point. Drag to pan,
+        scroll to zoom. Click beside an axis to name it.</p>
       <div class="tabs" id="tabs"></div>
       <div class="tabPanel" id="tabPanel"></div>
     </section>
@@ -96,6 +105,50 @@
     <span class="spacer"></span>
     <button id="csvCancel">Cancel</button>
     <button id="csvLoad" class="primary">Use this data</button>
+  </div>
+</dialog>
+
+<dialog id="windowDialog">
+  <h3>Graph window</h3>
+  <p class="muted small">Type the exact edges of the view.</p>
+  <div class="windowRow">
+    <input type="number" step="any" id="xMinBox">
+    <span>&lt; x &lt;</span>
+    <input type="number" step="any" id="xMaxBox">
+  </div>
+  <div class="windowRow">
+    <input type="number" step="any" id="yMinBox">
+    <span>&lt; y &lt;</span>
+    <input type="number" step="any" id="yMaxBox">
+  </div>
+  <p id="windowMessage" class="small"></p>
+  <div class="dialogButtons">
+    <button id="windowFit">Fit to data</button>
+    <span class="spacer"></span>
+    <button id="windowCancel">Cancel</button>
+    <button id="windowApply" class="primary">Apply</button>
+  </div>
+</dialog>
+
+<dialog id="axisDialog">
+  <h3 id="axisTitle">Name the x axis</h3>
+  <p class="muted small">The label goes under the graph. The symbol and
+    unit go at the top of the data table. Leave the label empty for no
+    label at all.</p>
+  <label class="field">Label
+    <input type="text" id="axisLabel" placeholder="Time since release">
+  </label>
+  <label class="field">Variable symbol
+    <input type="text" id="axisSymbol" placeholder="t" maxlength="12">
+  </label>
+  <label class="field">Unit
+    <input type="text" id="axisUnit" placeholder="s" maxlength="12">
+  </label>
+  <div class="dialogButtons">
+    <button id="axisClear">Clear</button>
+    <span class="spacer"></span>
+    <button id="axisCancel">Cancel</button>
+    <button id="axisApply" class="primary">Apply</button>
   </div>
 </dialog>
 
