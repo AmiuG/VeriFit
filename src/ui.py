@@ -484,6 +484,11 @@ class ModelCards:
         self.expandedIndex = 0
         self.left = panel.left + 10
         self.width = panel.width - 20
+        # the verdict hides behind a button in the panel's title bar,
+        # like the graph window's own Window button
+        self.showVerdict = False
+        self.verdictButton = Button(panel.right - 74, panel.top + 3, 64, 20,
+                                    'Verdict', 'toggleVerdict')
 
     def expandedHeight(self, result):
         height = 6
@@ -499,6 +504,8 @@ class ModelCards:
     # the engine's one-sentence conclusion sits at the very top, in its
     # own box so it reads before any of the numbers
     def verdictLines(self, analysisEngine):
+        if not self.showVerdict:
+            return []
         return wrapText(analysisEngine.verdict(), ModelCards.wrapWidth)
 
     def verdictHeight(self, analysisEngine):
@@ -605,6 +612,7 @@ class ModelCards:
     ########################################################################
 
     def draw(self, analysisEngine, colorForResult):
+        self.verdictButton.draw(pressed=self.showVerdict)
         if len(analysisEngine.results) == 0:
             drawLabel('No model fitted yet.', self.left,
                       self.panel.contentTop() + 16, size=11, align='left',

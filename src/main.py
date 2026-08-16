@@ -198,6 +198,11 @@ def onMousePress(app, mouseX, mouseY):
         return
 
     if app.resultsPanel.contains(mouseX, mouseY):
+        if app.cards.verdictButton.contains(mouseX, mouseY):
+            app.cards.showVerdict = not app.cards.showVerdict
+            app.status = ('Verdict shown.' if app.cards.showVerdict
+                          else 'Verdict hidden.')
+            return
         request = app.cards.handleClick(mouseX, mouseY, app.engine)
         if request is None:
             return
