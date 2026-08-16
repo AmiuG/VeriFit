@@ -289,6 +289,12 @@ class AnalysisEngine:
                         isClose = True
 
         if isClose:
+            # calling one of two equally complex models "simpler" would be
+            # wrong, so say plainly that the data cannot decide
+            if best.model.paramCount == second.model.paramCount:
+                return (f'{best.model.name} and {second.model.name} perform '
+                        f'almost identically. This data cannot tell '
+                        f'them apart.')
             simpler = self.simplerOf(best, second)
             return (f'{best.model.name} and {second.model.name} perform '
                     f'almost identically. The simpler model '
