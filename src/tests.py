@@ -415,6 +415,23 @@ def testAdjustedRescoring():
     print('Passed!')
 
 
+def testFormatNumber():
+    print('Testing equation number formatting...', end='')
+    assert(models.formatNumber(3.0) == '3')
+    assert(models.formatNumber(2.71828) == '2.7183')
+    assert(models.formatNumber(-1.5) == '-1.5')
+    assert(models.formatNumber(0) == '0')
+    # tiny coefficients used to display as a plain 0
+    assert(models.formatNumber(0.000003) == '(3*10^-6)')
+    assert(models.formatNumber(-0.0000425) == '(-4.25*10^-5)')
+
+    # a whole equation with a tiny slope: y = 0.000003x
+    linear = models.LinearModel()
+    assert(linear.fit([0, 1], [0, 0.000003]))
+    assert(linear.getEquation() == 'y = (3*10^-6)x')
+    print('Passed!')
+
+
 def testPowerStandardErrors():
     print('Testing power model standard errors...', end='')
     xs = [1, 2, 3, 4, 5, 6]
@@ -485,6 +502,7 @@ def main():
     testOffsetPredictions()
     testInfluenceSweep()
     testAdjustedRescoring()
+    testFormatNumber()
     testPowerStandardErrors()
     testColorsAndVisibility()
     print('All tests passed!')
