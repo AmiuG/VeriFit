@@ -22,6 +22,14 @@ const CURVE_COLORS = [
   '#000000'  // flatline
 ];
 
+// How the graph window answers the mouse. Panning at 1 would pin the
+// point under the cursor to it, which is standard but quick on a
+// trackpad, so it is deliberately gentler. Zoom is worked out from how
+// far the wheel really turned, so the many tiny scroll events a
+// trackpad sends do not race away.
+const PAN_SPEED = 0.45;
+const ZOOM_SPEED = 0.0015;
+
 let bridge = null;       // the python module, once it is loaded
 let samples = [];        // the built in datasets, read from python
 let points = [];         // whatever is currently being fitted
@@ -803,8 +811,10 @@ function connectGraph() {
     const dx = event.offsetX - last.x;
     const dy = event.offsetY - last.y;
     moved += Math.abs(dx) + Math.abs(dy);
-    const spanX = (view.xMax - view.xMin) / (m.width - PAD.left - PAD.right);
-    const spanY = (view.yMax - view.yMin) / (m.height - PAD.top - PAD.bottom);
+    const spanX = (view.xMax - view.xMin) / (m.width - PAD.left - PAD.right)
+                  * PAN_SPEED;
+    const spanY = (view.yMax - view.yMin) / (m.height - PAD.top - PAD.bottom)
+                  * PAN_SPEED;
     view.xMin -= dx * spanX; view.xMax -= dx * spanX;
     view.yMin += dy * spanY; view.yMax += dy * spanY;
     last = { x: event.offsetX, y: event.offsetY };
@@ -831,7 +841,11 @@ function connectGraph() {
 
   canvas.addEventListener('wheel', event => {
     event.preventDefault();
-    const factor = event.deltaY > 0 ? 1.12 : 0.89;
+    // a mouse wheel notch sends a big deltaY and a trackpad sends a
+    // stream of small ones, so the step follows the number rather than
+    // its sign. The clamp stops a flick from jumping several times over.
+    const factor = Math.min(2, Math.max(0.5,
+                            Math.exp(event.deltaY * ZOOM_SPEED)));
     const m = graphMetrics();
     // zoom toward the cursor, so the point under it stays put
     const cx = toDataX(event.offsetX, m);
