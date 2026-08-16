@@ -5,12 +5,29 @@
 #
 #     python3 src/tests.py
 
+import json
 import math
+import os
+import sys
+
 import linalg
 import stats
 import models
 import dataset
 import engine
+
+# bridge.py belongs to the website rather than the app, so it sits in the
+# web folder next door. It imports nothing but the files above, which is
+# what lets it be tested here without a browser. If somebody has only the
+# app's own files, those tests are skipped instead of failing.
+webFolder = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         '..', 'web')
+if os.path.isdir(webFolder):
+    sys.path.insert(0, webFolder)
+try:
+    import bridge
+except ImportError:
+    bridge = None
 
 
 def almostEqual(a, b, epsilon = 10 ** -6):
@@ -630,6 +647,175 @@ def testColorsAndVisibility():
     print('Passed!')
 
 
+# ----------------------------------------------------------------------
+# the bridge, which is what the website talks to
+# ----------------------------------------------------------------------
+
+def asPoints(x_coords, y_coords, excluded = ()):
+    listed = []
+    for i in range(len(x_coords)):
+        listed.append({'x': x_coords[i], 'y': y_coords[i],
+                       'excluded': i in excluded})
+    return listed
+
+def bridgeAnalyze(x_coords, y_coords, excluded = ()):
+    bridge.reset()
+    raw = bridge.analyze(json.dumps(asPoints(x_coords, y_coords, excluded)))
+    return raw, json.loads(raw)
+
+
+def testBridgeAnswers():
+    if bridge is None:
+        print('Testing the bridge...skipped, no web folder')
+        return
+    print('Testing the bridge answers...', end='')
+
+    raw, out = bridgeAnalyze(sampleXs, sampleYs)
+    # the shape the page relies on
+    for key in ['verdict', 'warnings', 'unavailable', 'results',
+                'activeCount', 'usesOffset', 'xOffset']:
+        assert(key in out)
+    assert(out['activeCount'] == len(sampleXs))
+    assert(len(out['results']) > 0)
+    first = out['results'][0]
+    for key in ['name', 'equation', 'cvRmse', 'r2', 'weight', 'colorIndex',
+                'isVisible', 'residuals', 'warnings', 'outlierIndex']:
+        assert(key in first)
+
+    # JavaScript cannot read NaN or Infinity, and python would happily
+    # write them, so every number has to come out as a real one or null
+    for xs, ys in [([1, 2, 3, 4, 5], [1, 1, 1, 1, 1]),
+                   ([1, 2], [5, 5]),
+                   ([3], [7]),
+                   ([2, 2, 2], [1, 2, 3]),
+                   ([1e150, 2e150], [1e150, 2e150]),
+                   # big enough that averaging them overflows, which
+                   # really does hand the bridge a nan to deal with
+                   ([1e308, 1.5e308], [1.0, 2.0]),
+                   ([1e308, 1.5e308, -1e308], [1.0, 2.0, 3.0]),
+                   ([1, 2, 3, 4], [1e-300, 2e-300, 3e-300, 4e-300])]:
+        text, parsed = bridgeAnalyze(xs, ys)
+        assert('NaN' not in text)
+        assert('Infinity' not in text)
+
+    # an excluded point is left out of the fit but still counted as a row
+    raw, out = bridgeAnalyze([1, 2, 3, 4, 5, 6], [1, 2, 3, 40, 5, 6],
+                             excluded = {3})
+    assert(out['activeCount'] == 5)
+    assert(len(out['results'][0]['residuals']) == 5)
+
+    # nothing at all is a legal state, not a crash
+    raw, out = bridgeAnalyze([], [])
+    assert(out['results'] == [] and out['verdict'] == '')
+    print('Passed!')
+
+
+def testBridgeDrawing():
+    if bridge is None:
+        print('Testing the bridge drawing...skipped, no web folder')
+        return
+    print('Testing the bridge drawing...', end='')
+
+    bridgeAnalyze(sampleXs, sampleYs)
+    pieces = json.loads(bridge.curve('Linear', 0, 12, 24))
+    assert(len(pieces) == 1)
+    # the page draws these straight, so they must be real coordinates
+    for x, y in pieces[0]:
+        assert(isinstance(x, float) or isinstance(x, int))
+        assert(stats.isFinite(y))
+
+    # a power model has no value at or below zero, so the line has to
+    # break rather than leap across the gap
+    bridgeAnalyze([1, 2, 3, 4, 5, 6], [2, 5.6, 10.4, 16, 22.4, 29.4])
+    pieces = json.loads(bridge.curve('Power', -5, 5, 40))
+    assert(len(pieces) >= 1)
+    for piece in pieces:
+        for x, y in piece:
+            assert(x > 0)
+
+    # the band brackets the curve and never comes out upside down
+    bridgeAnalyze(sampleXs, sampleYs)
+    for x, low, high in json.loads(bridge.band('Linear', 1, 12, 10))[0]:
+        assert(low < high)
+    answer = json.loads(bridge.predict('Linear', 6))
+    assert(answer['low'] < answer['y'] < answer['high'])
+    assert(answer['isExtrapolation'] == False)
+    assert(json.loads(bridge.predict('Linear', 99))['isExtrapolation'])
+
+    # year data is fitted on shifted x values, but the page only ever
+    # sees the numbers the user typed
+    years = [2000 + i for i in range(12)]
+    raw, out = bridgeAnalyze(years, sampleYs)
+    assert(out['usesOffset'])
+    pieces = json.loads(bridge.curve('Linear', 2000, 2011, 11))
+    assert(pieces[0][0][0] == 2000)
+    atStart = json.loads(bridge.predict('Linear', 2000))['y']
+    assert(almostEqual(atStart, pieces[0][0][1], 10 ** -6))
+
+    # asking about a model that was not fitted is answered, not crashed
+    assert(json.loads(bridge.curve('Nonsense', 0, 1, 4)) == [])
+    assert(json.loads(bridge.predict('Nonsense', 1))['y'] is None)
+    print('Passed!')
+
+
+def testBridgeControls():
+    if bridge is None:
+        print('Testing the bridge controls...skipped, no web folder')
+        return
+    print('Testing the bridge controls...', end='')
+
+    raw, out = bridgeAnalyze(sampleXs, sampleYs)
+    winner = out['results'][0]['name']
+
+    # hiding a curve sticks across a refit, and reset forgets it again
+    assert(json.loads(bridge.setVisible(winner, False)))
+    out = json.loads(bridge.analyze(json.dumps(asPoints(sampleXs, sampleYs))))
+    for result in out['results']:
+        if result['name'] == winner:
+            assert(result['isVisible'] == False)
+    bridge.reset()
+    out = json.loads(bridge.analyze(json.dumps(asPoints(sampleXs, sampleYs))))
+    assert(out['results'][0]['isVisible'])
+
+    # the sliders need a value and a range for each parameter
+    info = json.loads(bridge.parameters('Linear'))
+    assert(len(info['names']) == 2 and len(info['bounds']) == 2)
+    for i in range(2):
+        low, high = info['bounds'][i]
+        assert(low <= info['values'][i] <= high)
+
+    # moving a curve by hand costs it the scores it did not earn
+    moved = list(info['values'])
+    moved[0] += 1
+    out = json.loads(bridge.setParams('Linear', json.dumps(moved)))
+    for result in out['results']:
+        if result['name'] == 'Linear':
+            assert(result['isAdjusted'])
+            assert(result['cvRmse'] is None and result['aicc'] is None)
+    # refitting is the way back
+    out = json.loads(bridge.refit())
+    for result in out['results']:
+        if result['name'] == 'Linear':
+            assert(result['isAdjusted'] == False)
+            assert(result['cvRmse'] is not None)
+
+    # the leave-one-out sweep, and the case where there is too little data
+    bridgeAnalyze(sampleXs, sampleYs)
+    sweep = json.loads(bridge.influence())
+    assert(sweep['winner'] is not None)
+    assert(len(sweep['entries']) == len(sampleXs))
+    bridgeAnalyze([1, 2, 3], [1, 2, 3])
+    assert(json.loads(bridge.influence())['winner'] is None)
+
+    # the page reads the built in datasets from here rather than keeping
+    # its own copy of them
+    listed = json.loads(bridge.samples())
+    assert(len(listed) == len(dataset.samples))
+    assert(listed[0]['label'] == dataset.samples[0][0])
+    assert(len(listed[0]['points']) == len(dataset.samples[0][2]))
+    print('Passed!')
+
+
 def main():
     testLinalg()
     testPolynomialModels()
@@ -656,6 +842,9 @@ def main():
     testSampleDatasets()
     testPredictionBands()
     testColorsAndVisibility()
+    testBridgeAnswers()
+    testBridgeDrawing()
+    testBridgeControls()
     print('All tests passed!')
 
 
