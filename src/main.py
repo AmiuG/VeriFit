@@ -20,7 +20,7 @@ tableLeft = margin
 graphLeft = tableLeft + tableWidth + margin
 resultsLeft = graphLeft + graphWidth + margin
 
-backgroundColor = rgb(246, 246, 246)
+backgroundColor = rgb(244, 246, 249)
 markerColor = rgb(120, 120, 200)
 
 
@@ -355,6 +355,10 @@ def onKeyPress(app, key):
 
 
 def drawHeader(app):
+    # a white band anchors the header instead of floating on the gray
+    drawRect(0, 0, windowWidth, headerHeight, fill='white')
+    drawLine(0, headerHeight, windowWidth, headerHeight,
+             fill=ui.panelBorder, lineWidth=1)
     drawLabel('VeriFit!', margin, 14, size=18, bold=True, align='left')
     drawLabel('fitting data is not the same as predicting it',
               margin + 96, 16, size=11, align='left', fill=ui.mutedColor)
@@ -427,8 +431,12 @@ def redrawAll(app):
     offsetText = 'none'
     if app.data.usesOffset():
         offsetText = ui.formatCell(app.data.xOffset)
+    # a slim white band keeps the status line from getting lost
+    drawRect(0, windowHeight - margin, windowWidth, margin, fill='white')
+    drawLine(0, windowHeight - margin, windowWidth, windowHeight - margin,
+             fill=ui.panelBorder, lineWidth=1)
     drawLabel(f'{app.status}    x-offset: {offsetText}',
-              margin, windowHeight - 8, size=10, align='left',
+              margin, windowHeight - margin / 2, size=10, align='left',
               fill=ui.mutedColor)
 
     # the open sample menu and the overlay go on last, above the panels

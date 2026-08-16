@@ -6,6 +6,7 @@ panelBorder = rgb(205, 205, 205)
 # the one accent color, used sparingly so it always means "look here"
 accentColor = rgb(0, 114, 178)
 accentPressed = rgb(0, 90, 145)
+shadowColor = rgb(226, 228, 232)
 titleFill = rgb(242, 242, 242)
 textColor = 'black'
 mutedColor = rgb(125, 125, 125)
@@ -57,6 +58,10 @@ class Panel:
                 self.top <= mouseY <= self.bottom)
 
     def drawFrame(self):
+        # one offset rectangle behind the panel reads as a soft shadow,
+        # which lifts the panels off the background
+        drawRect(self.left + 3, self.top + 3, self.width, self.height,
+                 fill=shadowColor)
         drawRect(self.left, self.top, self.width, self.height, fill=panelFill)
         drawRect(self.left, self.top, self.width, Panel.titleHeight, fill=titleFill)
         drawLabel(self.title, self.left + 10, self.top + Panel.titleHeight / 2,
@@ -764,6 +769,9 @@ class SampleMenu:
     def drawMenu(self, activeIndex):
         if not self.isOpen:
             return
+        drawRect(self.rows[0].left + 3, self.rows[0].top + 3,
+                 SampleMenu.width, SampleMenu.rowHeight * len(self.rows),
+                 fill=shadowColor)
         for i in range(len(self.rows)):
             self.rows[i].draw(pressed=(i == activeIndex))
 
@@ -804,6 +812,8 @@ class HelpOverlay:
             return
         drawRect(0, 0, self.windowWidth, self.windowHeight, fill='black',
                  opacity=40)
+        drawRect(self.left + 4, self.top + 4, HelpOverlay.cardWidth,
+                 HelpOverlay.cardHeight, fill='black', opacity=25)
         drawRect(self.left, self.top, HelpOverlay.cardWidth,
                  HelpOverlay.cardHeight, fill='white', border=panelBorder)
         x = self.left + 24
