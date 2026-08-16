@@ -23,6 +23,9 @@ slopeLineColor = rgb(190, 190, 190)
 
 # 3.0 -> '3', 2.5 -> '2.5', 1/3 -> '0.3333'
 def formatCell(value):
+    # a tiny value would come out as '0.0000', so show it like 4e-05 instead
+    if value != 0 and abs(value) < 0.001:
+        return f'{value:.4g}'
     text = f'{value:.4f}'
     number = float(text)
     if number == int(number):
@@ -464,6 +467,9 @@ def wrapText(text, maxChars):
 def formatScore(value, decimals = 4):
     if value is None:
         return 'n/a'
+    # a tiny score is still worth telling apart from a true zero
+    if value != 0 and abs(value) < 0.001:
+        return f'{value:.4g}'
     return f'{value:.{decimals}f}'
 
 class ModelCards:
