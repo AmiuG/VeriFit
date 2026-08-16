@@ -5,7 +5,9 @@
 #
 #     python3 src/tests.py
 
+import math
 import linalg
+import models
 
 
 def almostEqual(a, b, epsilon = 10 ** -6):
@@ -60,8 +62,91 @@ def testLinalg():
     print('Passed!')
 
 
+def testPolynomialModels():
+    print('Testing polynomial models...', end='')
+    linear = models.LinearModel()
+    assert(linear.fit([0, 1, 2, 3], [1, 3, 5, 7]))  # y = 2x + 1
+    assert(listsAlmostEqual(linear.params, [1, 2]))
+    assert(almostEqual(linear.predict(10), 21))
+    assert(linear.getEquation() == 'y = 2x + 1')
+
+    quadratic = models.QuadraticModel()
+    # y = x^2 - 2x + 3 at x = -1, 0, 1, 2, 3
+    assert(quadratic.fit([-1, 0, 1, 2, 3], [6, 3, 2, 3, 6]))
+    assert(listsAlmostEqual(quadratic.params, [3, -2, 1]))
+
+    cubic = models.CubicModel()
+    assert(cubic.fit([-2, -1, 0, 1, 2], [-8, -1, 0, 1, 8]))  # y = x^3
+    assert(listsAlmostEqual(cubic.params, [0, 0, 0, 1]))
+
+    flat = models.FlatlineModel()
+    assert(flat.fit([1, 2], [4, 6]))
+    assert(almostEqual(flat.c, 5))
+    assert(flat.getEquation() == 'y = 5')
+
+    # not enough points, and points stacked on the same x
+    works, message = models.LinearModel().canFit([5], [1])
+    assert(works == False)
+    works, message = models.LinearModel().canFit([2, 2], [1, 3])
+    assert(works == False)
+    print('Passed!')
+
+
+def testCurvedModels():
+    print('Testing curved models...', end='')
+    expo = models.ExponentialModel()
+    xs = [0, 1, 2, 3]
+    ys = [3 * math.exp(0.5 * x) for x in xs]
+    assert(expo.fit(xs, ys))
+    assert(almostEqual(expo.a, 3) and almostEqual(expo.b, 0.5))
+
+    # the same shape flipped below the x-axis
+    negative = models.ExponentialModel()
+    ys = [-2 * math.exp(0.3 * x) for x in xs]
+    assert(negative.fit(xs, ys))
+    assert(almostEqual(negative.a, -2) and almostEqual(negative.b, 0.3))
+
+    # y-values crossing zero is something no exponential can do
+    works, message = models.ExponentialModel().canFit([1, 2], [-1, 2])
+    assert(works == False)
+
+    power = models.PowerModel()
+    xs = [1, 2, 3, 4]
+    ys = [2 * x ** 1.5 for x in xs]
+    assert(power.fit(xs, ys))
+    assert(almostEqual(power.a, 2) and almostEqual(power.b, 1.5))
+    assert(power.predict(-1) is None)
+    works, message = models.PowerModel().canFit([-1, 2], [1, 2])
+    assert(works == False)
+
+    log = models.LogarithmicModel()
+    ys = [1 + 2 * math.log(x) for x in xs]
+    assert(log.fit(xs, ys))
+    assert(almostEqual(log.a, 1) and almostEqual(log.b, 2))
+    assert(log.predict(0) is None)
+    print('Passed!')
+
+
+def testAdjusting():
+    print('Testing setParams and reset...', end='')
+    linear = models.LinearModel()
+    linear.fit([0, 1, 2], [1, 3, 5])
+    assert(linear.isAdjusted == False)
+    assert(linear.setParams([0, 1]))
+    assert(linear.isAdjusted)
+    assert(almostEqual(linear.predict(3), 3))
+    linear.reset()
+    assert(linear.isFitted == False and linear.params is None)
+    # an unfitted model refuses hand-set parameters
+    assert(models.LinearModel().setParams([1, 2]) == False)
+    print('Passed!')
+
+
 def main():
     testLinalg()
+    testPolynomialModels()
+    testCurvedModels()
+    testAdjusting()
     print('All tests passed!')
 
 
