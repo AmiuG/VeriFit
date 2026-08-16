@@ -37,6 +37,16 @@ allowed to fetch the .py files:
 then visit http://localhost:8000. The --bind keeps the server on this
 computer only, so nothing on the network can reach it.
 
+Browsers hold on to app.js hard, so after editing it a plain refresh
+often still runs the old copy. Either hard reload with shift-command-R,
+or serve with caching turned off:
+
+    python3 -c "import http.server as s; \
+    C=type('C',(s.SimpleHTTPRequestHandler,),{'end_headers':lambda self:( \
+    self.send_header('Cache-Control','no-store'), \
+    s.SimpleHTTPRequestHandler.end_headers(self))}); \
+    s.test(HandlerClass=C, port=8000, bind='127.0.0.1')"
+
 The website has everything the desktop app has, plus three things only
 a browser can do:
 
