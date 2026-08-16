@@ -10,6 +10,7 @@ import linalg
 import stats
 import models
 import dataset
+import engine
 
 
 def almostEqual(a, b, epsilon = 10 ** -6):
@@ -308,6 +309,112 @@ def testDatasetChecks():
     print('Passed!')
 
 
+# the same noisy straight line the app's Sample button loads
+sampleXs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+sampleYs = [2.4, 5.1, 6.2, 9.4, 10.1, 13.4, 14.0, 17.6, 18.1, 21.4, 22.2, 25.6]
+
+def makeEngine(xs, ys):
+    data = dataset.Dataset(list(xs), list(ys))
+    return engine.AnalysisEngine(data, models.makeAllModels())
+
+def findResult(analysis, name):
+    for result in analysis.results:
+        if result.model.name == name:
+            return result
+    return None
+
+
+def testEngineRanking():
+    print('Testing the engine ranking...', end='')
+    analysis = makeEngine(sampleXs, sampleYs)
+    analysis.analyze()
+    assert(len(analysis.results) > 0)
+    # the sample data is a noisy straight line, and the ranking should say so
+    assert(analysis.results[0].model.name == 'Linear')
+
+    # results must come back sorted best first
+    for i in range(len(analysis.results) - 1):
+        assert(analysis.results[i].rankingScore() <=
+               analysis.results[i + 1].rankingScore())
+
+    # akaike weights split 100% of the support between the scored models
+    total = 0
+    for result in analysis.results:
+        if result.akaikeWeight is not None:
+            total += result.akaikeWeight
+    assert(almostEqual(total, 1))
+    print('Passed!')
+
+
+def testUnavailableModels():
+    print('Testing unavailable models...', end='')
+    # y-values that cross zero rule out the exponential and power models
+    analysis = makeEngine([1, 2, 3, 4, 5], [2, -1, 3, -2, 4])
+    analysis.analyze()
+    names = [name for name, reason in analysis.unavailable]
+    assert('Exponential' in names and 'Power' in names)
+    fitted = [result.model.name for result in analysis.results]
+    assert('Linear' in fitted and 'Flatline' in fitted)
+    print('Passed!')
+
+
+def testOffsetPredictions():
+    print('Testing that the offset never changes predictions...', end='')
+    ys = [x ** 2 for x in range(1, 9)]
+    plain = makeEngine([1, 2, 3, 4, 5, 6, 7, 8], ys)
+    shifted = makeEngine([2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008], ys)
+    plain.analyze()
+    shifted.analyze()
+    assert(shifted.dataset.usesOffset())
+
+    # the same curve through the same shape of data, so predictions at
+    # matching x-values must agree: both should give 4.5^2 = 20.25
+    plainQuad = findResult(plain, 'Quadratic')
+    shiftedQuad = findResult(shifted, 'Quadratic')
+    assert(almostEqual(plain.predictAt(plainQuad, 4.5), 20.25, 10 ** -4))
+    assert(almostEqual(shifted.predictAt(shiftedQuad, 2004.5), 20.25,
+                       10 ** -4))
+    print('Passed!')
+
+
+def testInfluenceSweep():
+    print('Testing the influence sweep...', end='')
+    # three points is too few to drop one and still compare models
+    analysis = makeEngine([1, 2, 3], [1, 2, 3])
+    analysis.analyze()
+    assert(analysis.influenceSweep() is None)
+
+    analysis = makeEngine(sampleXs, sampleYs)
+    analysis.analyze()
+    winnerBefore = analysis.results[0].model.name
+    sweep = analysis.influenceSweep()
+    assert(sweep is not None)
+    winner, report = sweep
+    assert(winner == winnerBefore)
+    assert(len(report) == len(sampleXs))
+    # the sweep excludes points as it works, and must put every one back
+    assert(analysis.dataset.getActiveCount() == len(sampleXs))
+    assert(analysis.results[0].model.name == winnerBefore)
+    print('Passed!')
+
+
+def testAdjustedRescoring():
+    print('Testing rescoring after a hand adjustment...', end='')
+    analysis = makeEngine(sampleXs, sampleYs)
+    analysis.analyze()
+    result = analysis.results[0]
+    assert(result.cvRmse is not None)
+    params = list(result.model.params)
+    params[0] += 1
+    result.model.setParams(params)
+    analysis.rescoreAdjusted(result)
+    # a hand-adjusted curve was never fitted, so the honest answer is that
+    # its cross-validation and AICc scores no longer exist
+    assert(result.cvRmse is None and result.aicc is None)
+    assert(result.isAdjusted())
+    print('Passed!')
+
+
 def main():
     testLinalg()
     testPolynomialModels()
@@ -322,6 +429,11 @@ def main():
     testDatasetEditing()
     testOffset()
     testDatasetChecks()
+    testEngineRanking()
+    testUnavailableModels()
+    testOffsetPredictions()
+    testInfluenceSweep()
+    testAdjustedRescoring()
     print('All tests passed!')
 
 
