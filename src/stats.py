@@ -271,8 +271,8 @@ def curvatureWarning(x_coords, residuals):
         tooFew = runs <= 2
     if not tooFew:
         return str()
-    return(f'The points sit above the curve in one stretch and below it in'
-           f'another ({runs}runs). The data bends in a way this model'
+    return(f'The points sit above the curve in one stretch and below it in '
+           f'another ({runs} runs). The data bends in a way this model '
            f'cannot follow.')
 
 # compares the typical miss in the first half on x against the second half
@@ -298,7 +298,7 @@ def spreadWarning(x_coords, residuals):
     else:
         where = 'smaller x'
     return (f'The misses are about {ratio:.0f} times bigger at {where}. '
-            f'Predictions there are much less trustworthy than the single'
+            f'Predictions there are much less trustworthy than the single '
             f'error number suggests.')
 
 # search for the most extreme residual. The threshold for being "extreme"
@@ -326,7 +326,7 @@ def outlierWarning(residuals):
     for residual in residuals:
         sizes.append(abs(residual))
     ratio = sizes[index]/median(sizes)
-    return (f'One point misses by about {ratio:.0f} times the usual amount.'
+    return (f'One point misses by about {ratio:.0f} times the usual amount. '
             f'Try excluding it to see whether the ranking depends on it.')
 
 def describeResiduals(x_coords, y_coords, residuals):
