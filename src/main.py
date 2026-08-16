@@ -303,10 +303,25 @@ def onKeyPress(app, key):
         refit(app)
         return
 
-    if key == 'up':
-        app.table.scrollBy(-1, app.data)
+    # arrows pan the graph, except while a cell is being edited, when
+    # up and down keep scrolling the table
+    if app.table.isEditing() and key in ('up', 'down', 'left', 'right'):
+        if key == 'up':
+            app.table.scrollBy(-1, app.data)
+        elif key == 'down':
+            app.table.scrollBy(1, app.data)
+    elif key == 'up':
+        app.graph.pan(0, 0.1)
     elif key == 'down':
-        app.table.scrollBy(1, app.data)
+        app.graph.pan(0, -0.1)
+    elif key == 'left':
+        app.graph.pan(-0.1, 0)
+    elif key == 'right':
+        app.graph.pan(0.1, 0)
+    elif key in ('=', '+'):
+        app.graph.zoom(0.8)
+    elif key in ('-', '_'):
+        app.graph.zoom(1.25)
     elif key == 'f':
         doAction(app, 'reframe')
     elif key == 'u':

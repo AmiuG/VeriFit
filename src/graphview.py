@@ -117,6 +117,26 @@ class GraphView:
         yLow, yHigh = padRange(yRange[0], yRange[1])
         self.setWindow(xLow, xHigh, yLow, yHigh)
 
+    # keyboard navigation: slide the window by a fraction of its own span
+    def pan(self, xFraction, yFraction):
+        xShift = (self.xMax - self.xMin) * xFraction
+        yShift = (self.yMax - self.yMin) * yFraction
+        self.setWindow(self.xMin + xShift, self.xMax + xShift,
+                       self.yMin + yShift, self.yMax + yShift)
+
+    # factor below 1 zooms in. The middle of the view stays put, so
+    # zooming feels like leaning toward the graph rather than sliding.
+    def zoom(self, factor):
+        xReach = (self.xMax - self.xMin) / 2 * factor
+        yReach = (self.yMax - self.yMin) / 2 * factor
+        # at extreme zoom the window can underflow to zero width
+        if xReach <= 0 or yReach <= 0:
+            return
+        xMiddle = (self.xMin + self.xMax) / 2
+        yMiddle = (self.yMin + self.yMax) / 2
+        self.setWindow(xMiddle - xReach, xMiddle + xReach,
+                       yMiddle - yReach, yMiddle + yReach)
+
     # convert coordinate
     def toScreenX(self, x):
         ratio = (x - self.xMin) / (self.xMax - self.xMin)
