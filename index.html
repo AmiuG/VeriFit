@@ -16,7 +16,11 @@
   <h1>VeriFit<span class="accent">!</span></h1>
   <p class="tagline">fitting data is not the same as predicting it</p>
   <div class="actions">
-    <div class="samples" id="sampleButtons"></div>
+    <div class="dropdown">
+      <button id="sampleButton" class="primary"
+              title="try one of the built-in datasets">Sample ▾</button>
+      <div class="menu" id="sampleMenu" hidden></div>
+    </div>
     <button id="dataButton" title="paste or upload your own numbers">Data</button>
     <button id="shareButton" title="copy a link that carries this dataset">Share</button>
     <button id="imageButton" title="save the graph as an image">Image</button>

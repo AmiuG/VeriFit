@@ -87,14 +87,50 @@ button.tiny { font-size: 11px; padding: 3px 8px; }
   align-items: center;
 }
 
-.samples { display: flex; gap: 4px; flex-wrap: wrap; margin-right: 6px; }
+/* the sample menu drops out of its button, the way the desktop app's
+   own Sample button opens a list under itself */
+.dropdown { position: relative; }
 
-.samples button.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+.dropdown .menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 190px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 25, 45, 0.18);
+  padding: 4px;
+  z-index: 20;
+}
+
+.dropdown .menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  padding: 7px 9px;
+}
+
+.dropdown .menu button:hover { background: var(--faint); }
+
+.dropdown .menu button.active {
+  background: #e8f1fb;
+  color: var(--accent);
   font-weight: 500;
 }
+
+.dropdown .menu .hint {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+  margin-top: 1px;
+}
+
+.dropdown .menu button.active .hint { color: var(--accent); }
 
 /* ---------- layout ---------- */
 
