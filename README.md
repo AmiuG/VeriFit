@@ -37,6 +37,21 @@ allowed to fetch the .py files:
 then visit http://localhost:8000. The --bind keeps the server on this
 computer only, so nothing on the network can reach it.
 
+The website has everything the desktop app has, plus three things only
+a browser can do:
+
+    Data      paste or upload two columns of numbers. Commas, tabs and
+              spaces all work, and a header row is ignored.
+    Share     copies a link with the whole dataset packed into it, so a
+              classmate opens exactly what you are looking at. Nothing
+              is uploaded anywhere; the numbers ride in the address.
+    Image     saves the graph as a png for a lab report.
+
+Mouse and keyboard on the website: click the graph to add a point, drag
+to pan, scroll to zoom. Click a model to open it, click its swatch to
+show or hide its curve, and click a row number in the table to leave
+that point out of the fit.
+
 How to run
 ----------
 1. Put all eight .py files in the same folder:
