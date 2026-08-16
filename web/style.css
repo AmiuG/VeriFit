@@ -427,17 +427,25 @@ li.selected {
 /* ---------- dialogs ---------- */
 
 dialog {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 20px 22px;
+  border: none;
+  border-radius: 14px;
+  padding: 22px 24px;
   max-width: 540px;
   width: calc(100% - 32px);
-  box-shadow: 0 12px 40px rgba(15, 25, 45, 0.22);
+  box-shadow: 0 18px 50px rgba(15, 25, 45, 0.26);
   color: var(--ink);
 }
 
-dialog::backdrop { background: rgba(15, 22, 35, 0.35); }
-dialog h3 { margin: 0 0 8px; font-size: 17px; }
+dialog.narrow { max-width: 400px; }
+dialog::backdrop { background: rgba(15, 22, 35, 0.38); }
+
+dialog h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
 dialog p { margin: 0 0 10px; font-size: 13.5px; }
 
 #csvText {
@@ -463,27 +471,93 @@ dialog p { margin: 0 0 10px; font-size: 13.5px; }
 
 .windowRow input {
   font: inherit;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
-  padding: 6px 8px;
+  padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 6px;
-  width: 120px;
+  border-radius: 7px;
+  background: #fcfcfd;
+  width: 100%;
+  min-width: 0;
   text-align: right;
 }
 
-.windowRow span { font-weight: 700; min-width: 54px; text-align: center; }
+.windowRow input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 114, 178, 0.14);
+}
 
-.field { display: block; margin-bottom: 10px; font-size: 13px; }
+.windowRow span {
+  font-weight: 700;
+  min-width: 52px;
+  text-align: center;
+  flex: none;
+}
+
+/* a small caps caption over its box, so the eye runs straight down the
+   form instead of hunting along a line */
+.field { display: block; margin-bottom: 14px; }
+
+.field > span {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
 
 .field input {
   display: block;
   width: 100%;
   font: inherit;
-  padding: 6px 8px;
-  margin-top: 3px;
+  font-size: 14px;
+  padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 7px;
+  background: #fcfcfd;
 }
+
+.field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 114, 178, 0.14);
+}
+
+/* symbol and unit are both short, so they share a line */
+.fieldRow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* shows the result rather than describing it */
+.preview {
+  margin: 2px 0 16px;
+  padding: 10px 12px;
+  background: var(--page);
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 3px 10px;
+  font-size: 12.5px;
+  align-items: baseline;
+}
+
+.preview .where {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.preview .what {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.preview .what.none { color: var(--muted); font-style: italic; }
 
 /* the x and y column headings double as buttons for naming the axes */
 .axisHeader {

@@ -108,9 +108,8 @@
   </div>
 </dialog>
 
-<dialog id="windowDialog">
+<dialog id="windowDialog" class="narrow">
   <h3>Graph window</h3>
-  <p class="muted small">Type the exact edges of the view.</p>
   <div class="windowRow">
     <input type="number" step="any" id="xMinBox">
     <span>&lt; x &lt;</span>
@@ -130,20 +129,24 @@
   </div>
 </dialog>
 
-<dialog id="axisDialog">
+<dialog id="axisDialog" class="narrow">
   <h3 id="axisTitle">Name the x axis</h3>
-  <p class="muted small">The label goes under the graph. The symbol and
-    unit go at the top of the data table. Leave the label empty for no
-    label at all.</p>
-  <label class="field">Label
-    <input type="text" id="axisLabel" placeholder="Time since release">
+  <label class="field">
+    <span>Label</span>
+    <input type="text" id="axisLabel" placeholder="Time since release"
+           maxlength="60">
   </label>
-  <label class="field">Variable symbol
-    <input type="text" id="axisSymbol" placeholder="t" maxlength="12">
-  </label>
-  <label class="field">Unit
-    <input type="text" id="axisUnit" placeholder="s" maxlength="12">
-  </label>
+  <div class="fieldRow">
+    <label class="field">
+      <span>Symbol</span>
+      <input type="text" id="axisSymbol" placeholder="t" maxlength="12">
+    </label>
+    <label class="field">
+      <span>Unit</span>
+      <input type="text" id="axisUnit" placeholder="s" maxlength="12">
+    </label>
+  </div>
+  <p class="preview" id="axisPreview"></p>
   <div class="dialogButtons">
     <button id="axisClear">Clear</button>
     <span class="spacer"></span>
