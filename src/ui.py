@@ -708,6 +708,62 @@ class ModelCards:
                       bold=True, fill=mutedColor)
     ########################################################################
 
+class HelpOverlay:
+    cardWidth = 560
+    cardHeight = 400
+
+    about = [
+        'Models are ranked by how well they predict points they were',
+        'not fitted on (cross-validated RMSE), not by how closely they',
+        'hug the points they already saw. That is why a high R2 can',
+        'still lose: a flexible model can memorize noise instead of',
+        'finding the pattern. The Verdict button, the warnings, and',
+        'the Influence tab all show how far the winner can be trusted.',
+    ]
+
+    shortcuts = [
+        ('s', 'load the next sample dataset'),
+        ('u', 'undo the last data change'),
+        ('f', 'reframe the graph around the data'),
+        ('r p v i q', 'pick the tab under the graph'),
+        ('1 - 7', 'expand the model card at that rank'),
+        ('up / down', 'scroll the data table'),
+        ('h', 'open and close this help'),
+    ]
+
+    def __init__(self, windowWidth, windowHeight):
+        self.isOpen = False
+        self.windowWidth, self.windowHeight = windowWidth, windowHeight
+        self.left = (windowWidth - HelpOverlay.cardWidth) / 2
+        self.top = (windowHeight - HelpOverlay.cardHeight) / 2
+
+    def draw(self):
+        if not self.isOpen:
+            return
+        drawRect(0, 0, self.windowWidth, self.windowHeight, fill='black',
+                 opacity=40)
+        drawRect(self.left, self.top, HelpOverlay.cardWidth,
+                 HelpOverlay.cardHeight, fill='white', border=panelBorder)
+        x = self.left + 24
+        y = self.top + 28
+        drawLabel('How VeriFit decides', x, y, size=14, bold=True,
+                  align='left')
+        y += 22
+        for line in HelpOverlay.about:
+            drawLabel(line, x, y, size=11, align='left')
+            y += 16
+        y += 14
+        drawLabel('Shortcuts', x, y, size=14, bold=True, align='left')
+        y += 22
+        for keys, what in HelpOverlay.shortcuts:
+            drawLabel(keys, x, y, size=11, bold=True, align='left')
+            drawLabel(what, x + 100, y, size=11, align='left')
+            y += 17
+        drawLabel('press any key or click anywhere to close', x,
+                  self.top + HelpOverlay.cardHeight - 16, size=10,
+                  align='left', fill=mutedColor)
+
+
 class PredictPanel:
     def __init__(self, left, top, width, height):
         self.left, self.top = left, top

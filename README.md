@@ -46,6 +46,7 @@ Keyboard shortcuts
          v        show the Sensitivity tab
          i        show the Influence tab (runs the leave-one-out sweep)
          q        show the R2 vs CV tab
+         h        open the help overlay (any key closes it)
          1 - 7    expand the model card at that rank
          up/down  scroll the data table
 

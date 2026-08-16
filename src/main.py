@@ -79,6 +79,7 @@ def onAppStart(app):
 
     app.buttons = makeButtons()
     app.windowControls = ui.WindowControls(app.graphPanel)
+    app.help = ui.HelpOverlay(windowWidth, windowHeight)
     app.status = 'Click a cell in the table to start entering data.'
     app.sampleIndex = -1
     refit(app)
@@ -102,6 +103,8 @@ def makeButtons():
         left += width + 6
     buttons.append(ui.Button(windowWidth - margin - 96, 20, 96, 24,
                              'Reframe graph', 'reframe'))
+    buttons.append(ui.Button(windowWidth - margin - 96 - 34, 20, 28, 24,
+                             '?', 'help'))
     return buttons
 
 
@@ -156,6 +159,9 @@ def doAction(app, action):
     elif action == 'reframe':
         app.graph.fitToDataset(app.data)
         app.status = 'Graph reframed.'
+    elif action == 'help':
+        app.help.isOpen = True
+        app.status = 'Help.'
     elif action == 'resetParams':
         # refitting is the honest way back: it restores the parameters and
         # clears isAdjusted, so CV and AICc become meaningful again
@@ -164,6 +170,10 @@ def doAction(app, action):
 
 
 def onMousePress(app, mouseX, mouseY):
+    # while the help overlay is up, any click just dismisses it
+    if app.help.isOpen:
+        app.help.isOpen = False
+        return
     if app.windowControls.handleClick(mouseX, mouseY, app.graph):
         app.status = 'Editing the graph window.'
         return
@@ -279,6 +289,9 @@ def onMouseRelease(app, mouseX, mouseY):
 
 
 def onKeyPress(app, key):
+    if app.help.isOpen:
+        app.help.isOpen = False
+        return
     if app.windowControls.handleKey(key, app.graph):
         return
 
@@ -319,6 +332,8 @@ def onKeyPress(app, key):
             refreshInfluence(app)
     elif key == 'q':
         app.mode = 'rsquared'
+    elif key == 'h':
+        app.help.isOpen = True
 
 
 def drawHeader(app):
@@ -395,6 +410,9 @@ def redrawAll(app):
     drawLabel(f'{app.status}    x-offset: {offsetText}',
               margin, windowHeight - 8, size=10, align='left',
               fill=ui.mutedColor)
+
+    # the overlay goes on last, above everything else
+    app.help.draw()
 
 
 def main():
