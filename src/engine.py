@@ -26,6 +26,7 @@ class FitResults:
         # still show the original curve after a slider has moved things
         self.originalParams = None
         self.parameterBounds = None
+        self.bandSetup = None
 
         self.offset = 0
         # in case the user turns off viewing a model in graph
@@ -99,6 +100,8 @@ class AnalysisEngine:
         result.cvRmse = None
         result.aicc = None
         result.akaikeWeight = None
+        # a hand-adjusted curve was never fitted, so its band is gone too
+        result.bandSetup = None
 
     # rebuilds the model exactly as it came out of the fit, so the view can
     # draw the untouched curve behind a hand-adjusted one
@@ -173,6 +176,13 @@ class AnalysisEngine:
         if result.model.usesShiftedX:
             x = self.dataset.toFitX(x)
         return stats.safePredict(result.model, x)
+
+    # the plausible range for a new observation at x, doing the same
+    # coordinate conversion predictAt does
+    def bandAt(self, result, x):
+        if result.model.usesShiftedX:
+            x = self.dataset.toFitX(x)
+        return stats.predictionBand(result.model, result.bandSetup, x)
     
     def analyze(self):
         # in case the data changed, reset the results and unavailable
@@ -231,6 +241,7 @@ class AnalysisEngine:
             result.originalParams = list(model.params)
         result.standardErrors = stats.standardErrors(model, x_coords, y_coords)
         result.parameterBounds = stats.parameterBounds(model, x_coords, y_coords)
+        result.bandSetup = stats.bandSetup(model, x_coords, y_coords)
         # cvRMSE and AICc will be left blank on an adjusted model
         if model.isAdjusted:
             return result
