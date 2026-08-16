@@ -1203,8 +1203,141 @@ function renderRSquared(panel) {
 }
 
 
-function connectDialogs() {}
-function loadFromLink() { return false; }
+// ---------------------------------------------------------------
+// getting data in and results out
+// ---------------------------------------------------------------
+
+function connectDialogs() {
+  const dataDialog = byId('dataDialog');
+  byId('dataButton').addEventListener('click', () => {
+    byId('csvMessage').textContent = '';
+    byId('csvText').value = pointsAsText();
+    dataDialog.showModal();
+  });
+  byId('csvCancel').addEventListener('click', () => dataDialog.close());
+  byId('csvLoad').addEventListener('click', () => {
+    const parsed = parseTable(byId('csvText').value);
+    if (parsed.error !== null) {
+      byId('csvMessage').className = 'small alert';
+      byId('csvMessage').textContent = parsed.error;
+      return;
+    }
+    remember();
+    bridge.reset();
+    points = parsed.points;
+    selectedName = null;
+    markActiveSample(-1);
+    dataDialog.close();
+    analyze();
+    reframe();
+  });
+  byId('csvFile').addEventListener('change', async event => {
+    const file = event.target.files[0];
+    if (!file) return;
+    byId('csvText').value = await file.text();
+    byId('csvMessage').className = 'small muted';
+    byId('csvMessage').textContent = `read ${file.name}`;
+  });
+
+  const helpDialog = byId('helpDialog');
+  byId('helpButton').addEventListener('click', () => helpDialog.showModal());
+  byId('helpClose').addEventListener('click', () => helpDialog.close());
+
+  byId('shareButton').addEventListener('click', shareLink);
+  byId('imageButton').addEventListener('click', saveImage);
+}
+
+function pointsAsText() {
+  return points.map(p => `${trimNumber(p.x)}, ${trimNumber(p.y)}`).join('\n');
+}
+
+// accepts commas, tabs, semicolons or plain spaces, and skips a header
+// row, because data copied out of a spreadsheet arrives in all of those
+function parseTable(text) {
+  const collected = [];
+  const lines = text.split(/\r?\n/);
+  let skipped = 0;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed === '') continue;
+    const parts = trimmed.split(/[,;\t]+|\s+/).filter(part => part !== '');
+    if (parts.length < 2) { skipped++; continue; }
+    const x = parseNumber(parts[0]);
+    const y = parseNumber(parts[1]);
+    if (x === null || y === null) { skipped++; continue; }
+    collected.push({ x, y, excluded: false });
+  }
+  if (collected.length === 0) {
+    return { points: [], error: 'No pairs of numbers found in that text.' };
+  }
+  if (skipped > 1) {
+    return {
+      points: collected,
+      error: `Found ${collected.length} points, but ${skipped} lines did ` +
+             'not look like a pair of numbers. Check the text, then press ' +
+             'the button again to use them anyway.'
+    };
+  }
+  return { points: collected, error: null };
+}
+
+// The dataset travels in the address itself, so a link is all somebody
+// needs to see exactly what you are looking at. Nothing is uploaded.
+function shareLink() {
+  const packed = points.map(p =>
+    `${trimNumber(p.x)}:${trimNumber(p.y)}${p.excluded ? 'x' : ''}`).join(',');
+  const url = `${location.origin}${location.pathname}#d=${encodeURIComponent(packed)}`;
+  navigator.clipboard.writeText(url).then(
+    () => flashButton('shareButton', 'Link copied'),
+    () => window.prompt('Copy this link:', url)
+  );
+}
+
+function loadFromLink() {
+  const match = location.hash.match(/d=([^&]+)/);
+  if (!match) return false;
+  const collected = [];
+  for (const chunk of decodeURIComponent(match[1]).split(',')) {
+    const excluded = chunk.endsWith('x');
+    const [left, right] = (excluded ? chunk.slice(0, -1) : chunk).split(':');
+    const x = parseNumber(left);
+    const y = parseNumber(right);
+    if (x === null || y === null) continue;
+    collected.push({ x, y, excluded });
+  }
+  if (collected.length === 0) return false;
+  points = collected;
+  markActiveSample(-1);
+  analyze();
+  reframe();
+  return true;
+}
+
+// the graph as a picture, for a lab report
+function saveImage() {
+  const source = byId('graph');
+  // the canvas is transparent, so paint a white sheet behind it first
+  const sheet = document.createElement('canvas');
+  sheet.width = source.width;
+  sheet.height = source.height;
+  const ctx = sheet.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, sheet.width, sheet.height);
+  ctx.drawImage(source, 0, 0);
+
+  const link = document.createElement('a');
+  link.download = 'verifit-graph.png';
+  link.href = sheet.toDataURL('image/png');
+  link.click();
+  flashButton('imageButton', 'Saved');
+}
+
+function flashButton(id, message) {
+  const button = byId(id);
+  const original = button.textContent;
+  button.textContent = message;
+  setTimeout(() => { button.textContent = original; }, 1400);
+}
 
 
 boot();
