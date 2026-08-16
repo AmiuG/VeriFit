@@ -70,6 +70,11 @@ to pan, scroll to zoom. Click a model to open it, click its swatch to
 show or hide its curve, and click a row number in the table to leave
 that point out of the fit.
 
+On a phone or tablet: tap the graph to add a point, drag with one finger
+to move it, and pinch with two to zoom. A finger drags the graph one for
+one, since it is really on the picture, while a mouse is damped a little
+so a trackpad does not shoot across the data.
+
 How to run
 ----------
 1. Put all eight .py files in the same folder:
