@@ -415,6 +415,29 @@ def testAdjustedRescoring():
     print('Passed!')
 
 
+def testColorsAndVisibility():
+    print('Testing stable colors and visibility memory...', end='')
+    analysis = makeEngine(sampleXs, sampleYs)
+    analysis.analyze()
+    linearColor = findResult(analysis, 'Linear').colorIndex
+    cubicColor = findResult(analysis, 'Cubic').colorIndex
+    assert(linearColor != cubicColor)
+
+    # hiding the winner's curve must survive the next refit
+    winner = analysis.results[0]
+    winnerName = winner.model.name
+    assert(winner.isVisible)
+    analysis.setVisible(winner, False)
+
+    # a new point changes the data and reruns everything
+    analysis.dataset.addPoint(13, 27.4)
+    analysis.analyze()
+    assert(findResult(analysis, 'Linear').colorIndex == linearColor)
+    assert(findResult(analysis, 'Cubic').colorIndex == cubicColor)
+    assert(findResult(analysis, winnerName).isVisible == False)
+    print('Passed!')
+
+
 def main():
     testLinalg()
     testPolynomialModels()
@@ -434,6 +457,7 @@ def main():
     testOffsetPredictions()
     testInfluenceSweep()
     testAdjustedRescoring()
+    testColorsAndVisibility()
     print('All tests passed!')
 
 
