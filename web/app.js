@@ -127,6 +127,8 @@ async function boot() {
 // every change to the data comes through here
 function analyze(options = {}) {
   latest = JSON.parse(bridge.analyze(JSON.stringify(points)));
+  // the leave-one-out sweep describes the old data, so it is thrown away
+  influenceReport = null;
   if (!resultNamed(selectedName)) {
     selectedName = latest.results.length > 0 ? latest.results[0].name : null;
   }
@@ -580,6 +582,7 @@ function drawGraph() {
     drawCurves(ctx, m);
   }
   drawPoints(ctx, m);
+  if (mode === 'predict' && predictX !== null) drawPredictMarker(ctx, m);
   drawTickLabels(ctx, m, xStep, yStep);
 
   ctx.strokeStyle = '#cdd1d6';
@@ -700,6 +703,28 @@ function drawPoints(ctx, m) {
   });
 }
 
+// where the Predict tab is asking about, and what each visible model
+// expects there
+function drawPredictMarker(ctx, m) {
+  const px = toScreenX(predictX, m);
+  if (px < PAD.left || px > m.width - PAD.right) return;
+  ctx.strokeStyle = '#7878c8';
+  ctx.lineWidth = 1;
+  line(ctx, px, PAD.top, px, m.height - PAD.bottom);
+  for (const result of latest.results) {
+    if (!result.isVisible) continue;
+    const answer = JSON.parse(bridge.predict(result.name, predictX));
+    if (answer.y === null) continue;
+    const py = toScreenY(answer.y, m);
+    if (py < PAD.top || py > m.height - PAD.bottom) continue;
+    ctx.strokeStyle = colorFor(result);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
 // residuals only cover the points being fitted, so a table row has to be
 // translated into its place among the active points
 function activeIndexOf(row) {
@@ -780,9 +805,404 @@ function connectGraph() {
 }
 
 
-// the tabs under the graph and the dialogs are set up further down
-function connectTabs() {}
-function renderTab() {}
+// ---------------------------------------------------------------
+// the tabs under the graph
+//
+// Each one exists to help you doubt the winner rather than admire it.
+// ---------------------------------------------------------------
+
+const TABS = [
+  ['Residuals', 'residuals'],
+  ['Predict', 'predict'],
+  ['Sensitivity', 'sensitivity'],
+  ['Influence', 'influence'],
+  ['R² vs CV', 'rsquared']
+];
+
+let mode = 'residuals';
+let predictX = null;
+let influenceReport = null;
+
+function connectTabs() {
+  const holder = byId('tabs');
+  holder.innerHTML = '';
+  for (const [label, key] of TABS) {
+    const button = document.createElement('button');
+    button.textContent = label;
+    button.dataset.key = key;
+    button.addEventListener('click', () => {
+      mode = key;
+      // the sweep refits everything once per point, so it is only run
+      // when somebody actually opens the tab
+      if (key === 'influence' && influenceReport === null) {
+        influenceReport = JSON.parse(bridge.influence());
+      }
+      renderTab();
+    });
+    holder.appendChild(button);
+  }
+}
+
+function renderTab() {
+  document.querySelectorAll('#tabs button').forEach(button => {
+    button.classList.toggle('active', button.dataset.key === mode);
+  });
+  const panel = byId('tabPanel');
+  panel.innerHTML = '';
+  if (!latest || latest.results.length === 0) {
+    panel.innerHTML = '<p class="muted">Nothing fitted yet.</p>';
+    return;
+  }
+  if (mode === 'residuals') renderResiduals(panel);
+  else if (mode === 'predict') renderPredict(panel);
+  else if (mode === 'sensitivity') renderSensitivity(panel);
+  else if (mode === 'influence') renderInfluence(panel);
+  else renderRSquared(panel);
+}
+
+// a small canvas that lines up with the graph above it
+function stripCanvas(panel, height = 104) {
+  const canvas = document.createElement('canvas');
+  const width = panel.clientWidth - 28;
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = width * ratio;
+  canvas.height = height * ratio;
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  panel.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  return { ctx, width, height };
+}
+
+function caption(panel, text, className = 'muted small') {
+  const line = document.createElement('p');
+  line.className = className;
+  line.style.margin = '6px 0 0';
+  line.textContent = text;
+  panel.appendChild(line);
+}
+
+// ---------- residuals ----------
+
+function renderResiduals(panel) {
+  const result = selectedResult();
+  if (!result || result.residuals.length === 0) {
+    panel.innerHTML = '<p class="muted">Select a model to see its misses.</p>';
+    return;
+  }
+  const { ctx, width, height } = stripCanvas(panel);
+  const middle = height / 2;
+  const activeXs = points.filter(p => !p.excluded).map(p => p.x);
+
+  let biggest = 0;
+  for (const value of result.residuals) {
+    if (value !== null && Math.abs(value) > biggest) biggest = Math.abs(value);
+  }
+  if (biggest <= 0) biggest = 1;
+  const reach = biggest * 1.25;
+
+  ctx.strokeStyle = '#c9ced4';
+  line(ctx, 0, middle, width, middle);
+
+  result.residuals.forEach((value, i) => {
+    if (value === null || i >= activeXs.length) return;
+    const px = (activeXs[i] - view.xMin) / (view.xMax - view.xMin) * width;
+    if (px < 0 || px > width) return;
+    const py = middle - (value / reach) * (height / 2 - 6);
+    ctx.strokeStyle = '#d8dce1';
+    line(ctx, px, middle, px, py);
+    ctx.fillStyle = (i === result.outlierIndex) ? '#c82828' : '#3c4148';
+    ctx.beginPath();
+    ctx.arc(px, py, 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.fillStyle = '#8b9099';
+  ctx.font = '10px Ubuntu, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(`residuals: ${result.name}   ±${trimNumber(reach)}`, 2, 11);
+
+  caption(panel, 'A model that fits well scatters its misses either side ' +
+                 'of the line. A run of misses on one side means the data ' +
+                 'bends in a way this model cannot follow.');
+}
+
+// ---------- predict ----------
+
+function renderPredict(panel) {
+  const controls = document.createElement('div');
+  controls.className = 'predictControls';
+  controls.innerHTML = '<span>Predict at x =</span>';
+
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.step = 'any';
+  if (predictX !== null) input.value = predictX;
+  input.addEventListener('input', () => {
+    predictX = parseNumber(input.value);
+    renderPredictRows(panel);
+    drawGraph();
+  });
+  controls.appendChild(input);
+  panel.appendChild(controls);
+
+  const rows = document.createElement('div');
+  rows.id = 'predictRows';
+  panel.appendChild(rows);
+  renderPredictRows(panel);
+}
+
+function renderPredictRows(panel) {
+  const rows = panel.querySelector('#predictRows');
+  if (!rows) return;
+  rows.innerHTML = '';
+  if (predictX === null) {
+    rows.innerHTML = '<p class="muted small">Type an x value to see what ' +
+                     'each model expects there, and how sure it is.</p>';
+    return;
+  }
+  let shown = 0;
+  for (const result of latest.results) {
+    if (!result.isVisible) continue;
+    const answer = JSON.parse(bridge.predict(result.name, predictX));
+    const row = document.createElement('div');
+    row.className = 'predictRow';
+
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.style.color = colorFor(result);
+    name.textContent = result.name;
+
+    const value = document.createElement('span');
+    value.className = 'value';
+    value.textContent = answer.y === null ? 'cannot predict here'
+                                          : `y = ${formatScore(answer.y, 3)}`;
+
+    const range = document.createElement('span');
+    range.className = 'range';
+    if (answer.low !== null && answer.high !== null) {
+      range.textContent = `likely ${formatScore(answer.low, 3)} ` +
+                          `to ${formatScore(answer.high, 3)}`;
+    }
+
+    row.append(name, value, range);
+    rows.appendChild(row);
+    shown++;
+  }
+  if (shown === 0) {
+    rows.innerHTML = '<p class="muted small">No curve is switched on.</p>';
+    return;
+  }
+  const answer = JSON.parse(bridge.predict(latest.results[0].name, predictX));
+  if (answer.isExtrapolation) {
+    const badge = document.createElement('p');
+    badge.innerHTML = '<span class="badge">outside the data range</span> ' +
+      '<span class="muted small">the models disagree most here, and the ' +
+      'likely ranges widen to say so</span>';
+    badge.style.margin = '8px 0 0';
+    rows.appendChild(badge);
+  }
+}
+
+// ---------- sensitivity ----------
+
+function renderSensitivity(panel) {
+  const result = selectedResult();
+  if (!result) {
+    panel.innerHTML = '<p class="muted">Select a model first.</p>';
+    return;
+  }
+  const info = JSON.parse(bridge.parameters(result.name));
+  if (info === null) {
+    panel.innerHTML = '<p class="muted">No standard errors for this model. ' +
+                      'It needs more points than it has parameters.</p>';
+    return;
+  }
+
+  const heading = document.createElement('p');
+  heading.className = 'muted small';
+  heading.style.margin = '0 0 4px';
+  heading.textContent = `${result.name}: drag a parameter within plus or ` +
+                        'minus two standard errors and watch the curve move.';
+  panel.appendChild(heading);
+
+  const values = info.values.slice();
+  info.names.forEach((name, index) => {
+    const [low, high] = info.bounds[index];
+    if (low === null || high === null) return;
+    const row = document.createElement('div');
+    row.className = 'sliderRow';
+
+    const label = document.createElement('span');
+    label.textContent = name;
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = low;
+    slider.max = high;
+    slider.step = (high - low) / 200 || 0.0001;
+    slider.value = values[index];
+
+    const readout = document.createElement('span');
+    readout.className = 'value';
+    readout.textContent = formatScore(values[index], 4);
+
+    slider.addEventListener('input', () => {
+      values[index] = Number(slider.value);
+      readout.textContent = formatScore(values[index], 4);
+      latest = JSON.parse(bridge.setParams(result.name, JSON.stringify(values)));
+      renderRanking();
+      drawGraph();
+    });
+
+    row.append(label, slider, readout);
+    panel.appendChild(row);
+  });
+
+  const reset = document.createElement('button');
+  reset.textContent = 'Reset to the fitted values';
+  reset.style.marginTop = '6px';
+  reset.addEventListener('click', () => {
+    latest = JSON.parse(bridge.refit());
+    renderRanking();
+    drawGraph();
+    renderTab();
+  });
+  panel.appendChild(reset);
+
+  if (result.isAdjusted) {
+    caption(panel, 'This curve was moved by hand, so its cross-validation ' +
+                   'and AICc scores no longer mean anything. Reset to get ' +
+                   'them back.', 'alert small');
+  }
+}
+
+// ---------- influence ----------
+
+function renderInfluence(panel) {
+  if (influenceReport === null) {
+    influenceReport = JSON.parse(bridge.influence());
+  }
+  const report = influenceReport;
+  if (report.winner === null || report.entries.length === 0) {
+    panel.innerHTML = '<p class="muted">Not enough points yet — leaving one ' +
+                      'out needs at least four.</p>';
+    return;
+  }
+
+  const changers = report.entries.filter(entry => entry.changesWinner);
+  const verdict = document.createElement('p');
+  verdict.style.margin = '0 0 4px';
+  if (changers.length === 0) {
+    verdict.innerHTML = `<strong>${report.winner}</strong> stays the best ` +
+      'model no matter which single point is removed. The ranking does not ' +
+      'depend on any one point.';
+  } else {
+    const rows = changers.map(entry => entry.row + 1).join(', ');
+    verdict.className = 'alert';
+    verdict.innerHTML = `Removing row ${changers[0].row + 1} changes the ` +
+      `best model from <strong>${report.winner}</strong> to ` +
+      `<strong>${changers[0].winner}</strong>. ` +
+      (changers.length === 1
+        ? 'The conclusion rests on that one point. Try excluding it.'
+        : `${changers.length} points change the answer on their own: rows ${rows}.`);
+  }
+  panel.appendChild(verdict);
+
+  const { ctx, width, height } = stripCanvas(panel, 92);
+  let biggest = 0;
+  for (const entry of report.entries) {
+    if (entry.cvShift !== null) biggest = Math.max(biggest, Math.abs(entry.cvShift));
+  }
+  const base = height - 20;
+  ctx.strokeStyle = '#d6dae0';
+  line(ctx, 0, base, width, base);
+  if (biggest > 0) {
+    for (const entry of report.entries) {
+      const point = points[entry.row];
+      if (!point || entry.cvShift === null) continue;
+      const px = (point.x - view.xMin) / (view.xMax - view.xMin) * width;
+      if (px < 0 || px > width) continue;
+      const barHeight = Math.max(1, Math.abs(entry.cvShift) / biggest * (base - 6));
+      ctx.fillStyle = entry.changesWinner ? '#c82828' : '#9aa1aa';
+      ctx.fillRect(px - 3, base - barHeight, 6, barHeight);
+      if (entry.changesWinner) {
+        ctx.fillStyle = '#c82828';
+        ctx.font = '9px Ubuntu, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(String(entry.row + 1), px, base - barHeight - 3);
+      }
+    }
+  }
+  ctx.fillStyle = '#8b9099';
+  ctx.font = '10px Ubuntu, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText("how much the winner's error moves when each point is dropped",
+               2, height - 2);
+}
+
+// ---------- R squared against cross-validation ----------
+
+function renderRSquared(panel) {
+  const byR2 = latest.results.filter(r => r.r2 !== null)
+    .slice().sort((a, b) => b.r2 - a.r2);
+  const byCv = latest.results.filter(r => r.cvRmse !== null)
+    .slice().sort((a, b) => a.cvRmse - b.cvRmse);
+  if (byR2.length === 0 || byCv.length === 0) {
+    panel.innerHTML = '<p class="muted">No scores to compare yet.</p>';
+    return;
+  }
+
+  const { ctx, width, height } = stripCanvas(panel, 34 + byR2.length * 15);
+  const leftX = 128;
+  const rightX = width - 128;
+  const top = 30;
+  const rowY = (index, total) =>
+    top + index * ((height - top - 6) / Math.max(1, total - 1));
+
+  ctx.font = '10px Ubuntu, sans-serif';
+  ctx.fillStyle = '#8b9099';
+  ctx.textAlign = 'right';
+  ctx.fillText('ranked by R²', leftX, 12);
+  ctx.textAlign = 'left';
+  ctx.fillText('ranked by cross-validation', rightX + 6, 12);
+
+  byR2.forEach((result, leftIndex) => {
+    const rightIndex = byCv.indexOf(result);
+    if (rightIndex < 0) return;
+    const y1 = rowY(leftIndex, byR2.length);
+    const y2 = rowY(rightIndex, byCv.length);
+    const crossed = leftIndex !== rightIndex;
+    ctx.strokeStyle = crossed ? colorFor(result) : '#dcdfe4';
+    ctx.lineWidth = crossed ? 2 : 1;
+    line(ctx, leftX + 4, y1, rightX - 4, y2);
+  });
+
+  ctx.font = '11px Ubuntu, sans-serif';
+  byR2.forEach((result, index) => {
+    ctx.fillStyle = colorFor(result);
+    ctx.textAlign = 'right';
+    ctx.fillText(`${result.name} ${formatScore(result.r2, 3)}`,
+                 leftX, rowY(index, byR2.length) + 4);
+  });
+  byCv.forEach((result, index) => {
+    ctx.fillStyle = colorFor(result);
+    ctx.textAlign = 'left';
+    ctx.fillText(`${result.name} ${formatScore(result.cvRmse, 3)}`,
+                 rightX + 6, rowY(index, byCv.length) + 4);
+  });
+
+  const disagree = byR2[0] !== byCv[0];
+  caption(panel,
+    disagree
+      ? `R² prefers ${byR2[0].name}, cross-validation prefers ${byCv[0].name}. `
+        + 'A crossing line is a model that looks better than it predicts.'
+      : 'Both statistics agree on the winner here.',
+    disagree ? 'alert small' : 'muted small');
+}
+
+
 function connectDialogs() {}
 function loadFromLink() { return false; }
 

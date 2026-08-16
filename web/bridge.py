@@ -207,6 +207,57 @@ def influence():
     return json.dumps({'winner': winner, 'entries': entries})
 
 
+# the same names the desktop sensitivity panel puts beside each slider
+def parameterNames(result):
+    model = result.model
+    names = []
+    if hasattr(model, 'powers'):
+        for power in model.powers:
+            if power == 0:
+                names.append('constant')
+            elif power == 1:
+                names.append('x coefficient')
+            else:
+                names.append(f'x^{power} coefficient')
+        return names
+    if model.name == 'Flatline':
+        return ['c']
+    return ['a', 'b']
+
+
+# what the sliders need: where each parameter sits now, and how far it
+# could move and still be consistent with the data
+def parameters(name):
+    result = session.resultFor(name)
+    if result is None or result.parameterBounds is None:
+        return json.dumps(None)
+    bounds = []
+    for low, high in result.parameterBounds:
+        bounds.append([safeNumber(low), safeNumber(high)])
+    return json.dumps({
+        'names': parameterNames(result),
+        'values': safeList(result.model.params),
+        'bounds': bounds,
+    })
+
+
+# move a model by hand. Its cross-validation and AICc scores are dropped,
+# because a curve that was never fitted has not earned them.
+def setParams(name, valuesJson):
+    result = session.resultFor(name)
+    if result is None:
+        return json.dumps(None)
+    result.model.setParams(json.loads(valuesJson))
+    session.engine.rescoreAdjusted(result)
+    return json.dumps(describe())
+
+
+# refitting is the honest way back from a hand adjustment
+def refit():
+    session.engine.analyze()
+    return json.dumps(describe())
+
+
 def setVisible(name, isVisible):
     result = session.resultFor(name)
     if result is None:
