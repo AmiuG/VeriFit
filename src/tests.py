@@ -190,6 +190,45 @@ def testCrossValidation():
     print('Passed!')
 
 
+def testFoldsIgnoreRowOrder():
+    print('Testing that folds ignore the row order...', end='')
+    # the groups are dealt out in order of x, so the same points in a
+    # different order land in the same groups
+    xs = [5, 1, 3, 2, 4]
+    ys = [50, 10, 30, 20, 40]
+    folds = stats.foldNumbers(xs, ys, 2)
+    # x = 1 is first in order and x = 5 is last, whatever row they are in
+    assert(folds[1] == 0 and folds[3] == 1)
+    assert(folds[2] == 0 and folds[4] == 1 and folds[0] == 0)
+
+    # with more points than leave-one-out allows, shuffling the rows used
+    # to change the score. It must not any more.
+    plainXs = list(range(1, 41))
+    plainYs = [2 * x + 1 + ((x * 37) % 11 - 5) * 0.3 for x in plainXs]
+    linear = models.LinearModel()
+    linear.fit(plainXs, plainYs)
+    straight = stats.crossValidatedRmse(linear, plainXs, plainYs)
+
+    pairs = list(zip(plainXs, plainYs))
+    for shift in [7, 19, 31]:
+        moved = pairs[shift:] + pairs[:shift]
+        movedXs = [pair[0] for pair in moved]
+        movedYs = [pair[1] for pair in moved]
+        shuffledModel = models.LinearModel()
+        shuffledModel.fit(movedXs, movedYs)
+        assert(almostEqual(stats.crossValidatedRmse(shuffledModel, movedXs,
+                                                    movedYs), straight))
+    # reversed too, which is the order a table is often typed in
+    backwards = list(reversed(pairs))
+    backXs = [pair[0] for pair in backwards]
+    backYs = [pair[1] for pair in backwards]
+    backModel = models.LinearModel()
+    backModel.fit(backXs, backYs)
+    assert(almostEqual(stats.crossValidatedRmse(backModel, backXs, backYs),
+                       straight))
+    print('Passed!')
+
+
 def testInformationScores():
     print('Testing AICc and akaike weights...', end='')
     xs = [1, 2, 3, 4, 5, 6, 7, 8]
@@ -594,6 +633,7 @@ def main():
     testAdjusting()
     testStatsBasics()
     testCrossValidation()
+    testFoldsIgnoreRowOrder()
     testInformationScores()
     testResidualPatterns()
     testStandardErrors()
