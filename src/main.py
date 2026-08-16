@@ -23,9 +23,6 @@ resultsLeft = graphLeft + graphWidth + margin
 backgroundColor = rgb(246, 246, 246)
 markerColor = rgb(120, 120, 200)
 
-sampleXs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-sampleYs = [2.4, 5.1, 6.2, 9.4, 10.1, 13.4, 14.0, 17.6, 18.1, 21.4, 22.2, 25.6]
-
 
 def onAppStart(app):
     app.width, app.height = windowWidth, windowHeight
@@ -83,15 +80,22 @@ def onAppStart(app):
     app.buttons = makeButtons()
     app.windowControls = ui.WindowControls(app.graphPanel)
     app.status = 'Click a cell in the table to start entering data.'
+    app.sampleIndex = -1
     refit(app)
     app.graph.fitToDataset(app.data)
 
 
 def makeButtons():
     buttons = []
-    left = margin
-    for label, action, width in [('Sample', 'sample', 74),
-                                 ('Undo', 'undo', 62),
+    # one button per sample dataset, after the 'samples:' label
+    left = margin + 52
+    for i in range(len(dataset.samples)):
+        label = dataset.samples[i][0]
+        width = 16 + 6 * len(label)
+        buttons.append(ui.Button(left, 30, width, 24, label, f'sample{i}'))
+        left += width + 6
+    left += 12
+    for label, action, width in [('Undo', 'undo', 62),
                                  ('Include all', 'includeAll', 86),
                                  ('Clear', 'clear', 62)]:
         buttons.append(ui.Button(left, 30, width, 24, label, action))
@@ -119,21 +123,23 @@ def refreshInfluence(app):
 def selected(app):
     return app.cards.selectedResult(app.engine)
 
-def loadSample(app):
-    app.data = dataset.Dataset(list(sampleXs), list(sampleYs))
+def loadSample(app, index):
+    label, hint, xs, ys = dataset.samples[index]
+    app.sampleIndex = index
+    app.data = dataset.Dataset(list(xs), list(ys))
     app.engine = engine.AnalysisEngine(app.data, models.makeAllModels())
     app.table.cancelEdit()
     app.table.scrollTop = 0
     app.cards.expandedIndex = 0
-    app.status = 'Loaded a sample dataset.'
+    app.status = f'{label} sample: {hint}'
     refit(app)
     # a whole new dataset is one of the two times reframing is wanted
     app.graph.fitToDataset(app.data)
 
 
 def doAction(app, action):
-    if action == 'sample':
-        loadSample(app)
+    if action.startswith('sample'):
+        loadSample(app, int(action[len('sample'):]))
     elif action == 'undo':
         app.table.cancelEdit()
         app.status = 'Undo.' if app.data.undo() else 'Nothing to undo.'
@@ -288,7 +294,8 @@ def onKeyPress(app, key):
     elif key == 'u':
         doAction(app, 'undo')
     elif key == 's':
-        doAction(app, 'sample')
+        # each press moves on to the next sample, like a little tour
+        loadSample(app, (app.sampleIndex + 1) % len(dataset.samples))
     elif key == 'r':
         app.mode = 'residuals'
     elif key == 'p':
@@ -313,6 +320,8 @@ def drawHeader(app):
     drawLabel('VeriFit!', margin, 14, size=18, bold=True, align='left')
     drawLabel('fitting data is not the same as predicting it',
               margin + 96, 16, size=11, align='left', fill=ui.mutedColor)
+    drawLabel('samples:', margin, 42, size=10, align='left',
+              fill=ui.mutedColor)
     for button in app.buttons:
         button.draw()
 
