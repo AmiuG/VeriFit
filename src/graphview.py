@@ -50,10 +50,11 @@ def tickValues(low, high, targetCount):
         return []
     return tickValuesByStep(low, high, niceStep((high-low) / targetCount))
 
-# desmos splits a major step of 2 into quarters, and 1 or 5 into fifths
+# desmos splits a major step of 2 into quarters, and 1 or 5 into fifths.
+# cmu_graphics blocks the round builtin, so add 0.5 and chop instead.
 def minorStep(step):
     power = math.floor(math.log10(step))
-    mantissa = round(step / (10 ** power))
+    mantissa = int(step / (10 ** power) + 0.5)
     if mantissa == 2:
         return step / 4
     return step / 5
